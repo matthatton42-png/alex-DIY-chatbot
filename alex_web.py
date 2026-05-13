@@ -3,14 +3,14 @@ import streamlit as st
 
 # Page configuration
 st.set_page_config(
-    page_title="Alex - Handyman Services Assistant",
+    page_title="Handy Helper - DIY Services Assistant",
     page_icon="🔧",
     layout="centered"
 )
 
 # Title and description
-st.title("🔧 Alex - Handyman Services Assistant")
-st.caption("Your personal handyman guide. Ask me anything about home repairs!")
+st.title("Handy Helper - DIY Services Assistant")
+st.caption("Your personal handyman guide. Ask me anything about DIY home repairs!")
 
 # Initialize Anthropic client
 client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
