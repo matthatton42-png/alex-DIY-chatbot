@@ -90,69 +90,94 @@ RULES:
   recommend the user contact a professional
 """
 
-# Initialize chat history in session
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+print("What project are we working on today? Type 'quit' to exit.\n")
 
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# Main chat loop
+while True:
+    try:
+        user_input = input("You: ")
+    except KeyboardInterrupt:
+        print("\nGoodbye!")
+        with open("chat_history.json", "w") as f:
+            json.dump(conversation, f)
+        print("Conversation saved to chat_history.json")
+        break
 
-# Chat input box at the bottom
-if user_input := st.chat_input("Ask Alex a handyman question..."):
+    if user_input.lower() == "quit":
+        print("Goodbye!")
+        with open("chat_history.json", "w") as f:
+            json.dump(conversation, f)
+        print("Conversation saved to chat_history.json")
+        break
 
-    # Show user message
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
+    conversation.append({"role": "user", "content": user_input})
 
-    # Show Alex thinking
-    with st.chat_message("assistant"):
-        with st.spinner("Alex is thinking..."):
+    # Typing indicator
+    print("Helper is thinking", end="", flush=True)
+    for _ in range(3):
+        time.sleep(0.5)
+        print(".", end="", flush=True)
+    print()
 
-            # Build conversation for API
-            conversation = [
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ]
+    # Keep looping until Claude gives a final text response
+    while True:
+        try:
+            response = client.messages.create(
+                model="claude-opus-4-6",
+                max_tokens=1024,
+                system=system_prompt,
+                tools=[{"type": "web_search_20250305", "name": "web_search"}],
+                messages=conversation
+            )
+        except anthropic.APIConnectionError:
+            print("Helper: Sorry, I am having trouble connecting. Please check your internet and try again.\n")
+            conversation.pop()
+            break
+        except anthropic.RateLimitError:
+            print("Helper: I am a little overwhelmed right now. Give me a moment and try again.\n")
+            conversation.pop()
+            break
+        except anthropic.AuthenticationError:
+            print("Helper: There is an issue with the API key. Please check your credentials.\n")
+            exit()
+        except Exception as e:
+            print(f"Helper: Something unexpected went wrong: {e}\n")
+            conversation.pop()
+            break
 
-            # Keep looping until we get a final response
-            while True:
-                response = client.messages.create(
-                    model="claude-opus-4-6",
-                    max_tokens=1024,
-                    system=system_prompt,
-                    tools=[{"type": "web_search_20250305", "name": "web_search"}],
-                    messages=conversation
-                )
+        # Check if Claude wants to search the web
+        if response.stop_reason == "tool_use":
+            print("Helper is searching the web...\n")
 
-                if response.stop_reason == "tool_use":
-                    conversation.append({
-                        "role": "assistant",
-                        "content": response.content
+            conversation.append({
+                "role": "assistant",
+                "content": response.content
+            })
+
+            tool_results = []
+            for block in response.content:
+                if block.type == "tool_use":
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": block.input.get("query", "")
                     })
 
-                    tool_results = []
-                    for block in response.content:
-                        if block.type == "tool_use":
-                            tool_results.append({
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": block.input.get("query", "")
-                            })
+            conversation.append({
+                "role": "user",
+                "content": tool_results
+            })
 
-                    conversation.append({
-                        "role": "user",
-                        "content": tool_results
-                    })
+        else:
+            # Claude has a final answer, print it and break inner loop
+            reply = ""
+            for block in response.content:
+                if hasattr(block, "text"):
+                    reply += block.text
 
-                else:
-                    reply = ""
-                    for block in response.content:
-                        if hasattr(block, "text"):
-                            reply += block.text
-                    break
+            conversation.append({"role": "assistant", "content": reply})
+            print(f"Helper: {reply}\n")
+            break
 
         # Display and save Alex reply
         st.markdown(reply)
