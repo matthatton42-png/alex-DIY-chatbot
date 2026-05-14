@@ -39,6 +39,28 @@ CATEGORIES:
 - Siding
 - Roofing and Gutters
 - Drywall
+- Furniture Assembly
+- Appliance Repair
+- Pest Control
+- Painting
+- Driveway Sealing
+- Water Heater
+- Furnace
+- Air Conditioner
+- HVAC
+- Security
+- Propane
+- Natural Gas
+- Foundation Repair
+- Landscaping
+- Tile and Grout
+- Smart Home Devices
+- Garbage Disposal
+- Dishwasher
+- Fencing
+- Weatherproofing
+- Carbon Monoxide Detectors
+- Smoke Detectors
 
 SAFETY RESTRICTIONS TIER 1:
 - Power tools
