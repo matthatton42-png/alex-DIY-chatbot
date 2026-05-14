@@ -113,7 +113,7 @@ while True:
     conversation.append({"role": "user", "content": user_input})
 
     # Typing indicator
-    print("Helper is thinking", end="", flush=True)
+    print("Your Helper is thinking", end="", flush=True)
     for _ in range(3):
         time.sleep(0.5)
         print(".", end="", flush=True)
@@ -130,24 +130,24 @@ while True:
                 messages=conversation
             )
         except anthropic.APIConnectionError:
-            print("Helper: Sorry, I am having trouble connecting. Please check your internet and try again.\n")
+            print("Your Helper: Sorry, I am having trouble connecting. Please check your internet and try again.\n")
             conversation.pop()
             break
         except anthropic.RateLimitError:
-            print("Helper: I am a little overwhelmed right now. Give me a moment and try again.\n")
+            print("Your Helper: I am a little overwhelmed right now. Give me a moment and try again.\n")
             conversation.pop()
             break
         except anthropic.AuthenticationError:
-            print("Helper: There is an issue with the API key. Please check your credentials.\n")
+            print("Your Helper: There is an issue with the API key. Please check your credentials.\n")
             exit()
         except Exception as e:
-            print(f"Helper: Something unexpected went wrong: {e}\n")
+            print(f"Your Helper: Something unexpected went wrong: {e}\n")
             conversation.pop()
             break
 
         # Check if Claude wants to search the web
         if response.stop_reason == "tool_use":
-            print("Helper is searching the web...\n")
+            print("Your Helper is searching the web...\n")
 
             conversation.append({
                 "role": "assistant",
@@ -176,7 +176,7 @@ while True:
                     reply += block.text
 
             conversation.append({"role": "assistant", "content": reply})
-            print(f"Helper: {reply}\n")
+            print(f"Alex: {reply}\n")
             break
 
         # Display and save Alex reply
