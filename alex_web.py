@@ -52,12 +52,12 @@ CATEGORIES:
 
 SAFETY RESTRICTIONS TIER 1:
 - Power tools, Heavy equipment, Fire hazards, Safety concerns
-- Verify user confidence and recommend local professionals
+- Verify user confidence and recommend three reputable local professionals
 
 SAFETY RESTRICTIONS TIER 2:
 - Inside electrical panel, Inside electrical meter base
 - Ladder usage, Wall removal
-- Explain risks and strongly recommend certified professionals
+- Explain risks and strongly recommend three reputable local professionals
 
 RULES:
 - Only answer questions based on CATEGORIES
@@ -113,12 +113,10 @@ if uploaded_file:
 # Chat input
 if user_input := st.chat_input("Describe your project or ask a question..."):
 
-    # Build the user message content
     if uploaded_file:
         uploaded_file.seek(0)
         image_data = encode_image(uploaded_file)
         media_type = get_image_media_type(uploaded_file)
-
         user_content = [
             {
                 "type": "image",
@@ -141,7 +139,6 @@ if user_input := st.chat_input("Describe your project or ask a question..."):
         user_content = user_input
         display_content = user_input
 
-    # Show user message
     with st.chat_message("user"):
         if uploaded_file:
             st.image(uploaded_file, caption="Your photo", width=200)
@@ -152,7 +149,6 @@ if user_input := st.chat_input("Describe your project or ask a question..."):
         "content": display_content
     })
 
-    # Build conversation for API — only include text for history
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
@@ -164,10 +160,8 @@ if user_input := st.chat_input("Describe your project or ask a question..."):
         else:
             conversation.append({"role": msg["role"], "content": msg["content"]})
 
-    # Add current message with image if present
     conversation.append({"role": "user", "content": user_content})
 
-    # Get response
     with st.chat_message("assistant"):
         with st.spinner("Handy Helper is analyzing..."):
             try:
