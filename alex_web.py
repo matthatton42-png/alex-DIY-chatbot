@@ -125,9 +125,54 @@ if uploaded_file:
     st.image(uploaded_file, caption="Your photo", width=200)
     st.success("Photo ready! Ask your question below.")
 
+# Motivational banner
+if not st.session_state.messages:
+    st.markdown("""
+        <div style="
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #2C2520 0%, #1A1612 100%);
+            border: 1px solid rgba(232,82,26,0.3);
+            border-left: 4px solid #E8521A;
+            border-radius: 8px;
+            text-align: center;">
+            <div style="
+                font-size: 28px;
+                margin-bottom: 0.75rem;">🔧</div>
+            <div style="
+                font-family: sans-serif;
+                font-size: 20px;
+                font-weight: 700;
+                color: #F5F0E8;
+                line-height: 1.3;
+                margin-bottom: 0.75rem;
+                letter-spacing: 0.5px;">
+                Every Expert Was Once a Beginner
+            </div>
+            <div style="
+                font-size: 13px;
+                color: #8A7E76;
+                line-height: 1.6;
+                max-width: 320px;
+                margin: 0 auto 1rem;">
+                You already have what it takes. Ask me anything about your project and let's get it done together.
+            </div>
+            <div style="
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                flex-wrap: wrap;">
+                <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">37+ CATEGORIES</span>
+                <span style="font-size: 11px; color: #8A7E76;">•</span>
+                <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">PHOTO ANALYSIS</span>
+                <span style="font-size: 11px; color: #8A7E76;">•</span>
+                <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">FREE 24/7</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
 # Chat input
 if user_input := st.chat_input("What project are we working on today?"):
-
     if uploaded_file:
         uploaded_file.seek(0)
         image_data = encode_image(uploaded_file)
