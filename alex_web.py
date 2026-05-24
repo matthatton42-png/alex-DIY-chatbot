@@ -21,16 +21,33 @@ st.markdown("""
         [data-testid="stStatusWidget"] { display: none; }
         [data-testid="stHeader"] { display: none; }
         [data-testid="stCaption"] { display: none; }
-        [data-testid="stBottom"] { display: none; }
-        [data-testid="stBottomBlockContainer"] { display: none; }
-        .stChatFloatingInputContainer { padding-bottom: 0 !important; }
+        [data-testid="stBottom"] { display: none !important; }
+        [data-testid="stBottomBlockContainer"] { display: none !important; }
+        iframe[title="streamlit_analytics"] { display: none !important; }
+        .streamlit-footer { display: none !important; }
+        ._container_51w34_1 { display: none !important; }
         h1 { display: none; }
         .block-container {
             padding-top: 0.5rem !important;
-            padding-bottom: 0 !important;
+            padding-bottom: 4rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             max-width: 100% !important;
+        }
+        .stChatInputContainer {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            padding: 0.5rem 1rem !important;
+            background: #1A1612 !important;
+            z-index: 999 !important;
+        }
+        [data-testid="stChatInput"] {
+            position: fixed !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            background: #1A1612 !important;
         }
     </style>
 """, unsafe_allow_html=True)
