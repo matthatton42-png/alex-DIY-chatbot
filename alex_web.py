@@ -3,7 +3,20 @@ import streamlit as st
 import base64
 
 # Page configuration
-st.set_page_config(
+st.set_page_config# Hide Streamlit default UI elements for clean embedded experience
+st.markdown("""
+    <style>
+        #MainMenu { visibility: hidden; }
+        header { visibility: hidden; }
+        footer { visibility: hidden; }
+        .stDeployButton { display: none; }
+        .stAppToolbar { display: none; }
+        [data-testid="stToolbar"] { display: none; }
+        [data-testid="stDecoration"] { display: none; }
+        [data-testid="stStatusWidget"] { display: none; }
+        .block-container { padding-top: 1rem; padding-bottom: 0; }
+    </style>
+""", unsafe_allow_html=True)(
     page_title="Handy Helper - DIY Services Assistant",
     page_icon="🔧",
     layout="centered"
