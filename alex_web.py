@@ -21,33 +21,18 @@ st.markdown("""
         [data-testid="stStatusWidget"] { display: none; }
         [data-testid="stHeader"] { display: none; }
         [data-testid="stCaption"] { display: none; }
+        [data-testid="stBottom"] { display: none; }
+        [data-testid="stBottomBlockContainer"] { display: none; }
+        .stChatFloatingInputContainer { padding-bottom: 0 !important; }
         h1 { display: none; }
         .block-container {
-            padding-top: 0 !important;
+            padding-top: 0.5rem !important;
             padding-bottom: 0 !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             max-width: 100% !important;
         }
     </style>
-    <div style="
-        background: #2C2520;
-        border-bottom: 1px solid rgba(232,82,26,0.2);
-        padding: 10px 16px;
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 10px;">
-        <div style="
-            width: 32px; height: 32px;
-            background: #E8521A; border-radius: 6px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: white; font-size: 13px; flex-shrink: 0;">HH</div>
-        <div>
-            <div style="font-weight: 600; font-size: 14px; color: #F5F0E8;">Handy Helper</div>
-            <div style="font-size: 11px; color: #2D7D46;">&#9679; Online now</div>
-        </div>
-    </div>
 """, unsafe_allow_html=True)
 
 # Initialize Anthropic client securely
