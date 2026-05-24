@@ -2,7 +2,6 @@ import anthropic
 import streamlit as st
 import base64
 
-# Page configuration
 st.set_page_config(
     page_title="Handy Helper - DIY Services Assistant",
     page_icon="🔧",
@@ -20,34 +19,13 @@ st.markdown("""
         [data-testid="stDecoration"] { display: none; }
         [data-testid="stStatusWidget"] { display: none; }
         [data-testid="stHeader"] { display: none; }
-        [data-testid="stCaption"] { display: none; }
-        [data-testid="stBottom"] { display: none !important; }
-        [data-testid="stBottomBlockContainer"] { display: none !important; }
-        iframe[title="streamlit_analytics"] { display: none !important; }
-        .streamlit-footer { display: none !important; }
-        ._container_51w34_1 { display: none !important; }
         h1 { display: none; }
         .block-container {
-            padding-top: 0.5rem !important;
-            padding-bottom: 4rem !important;
+            padding-top: 0.75rem !important;
+            padding-bottom: 1rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             max-width: 100% !important;
-        }
-        .stChatInputContainer {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            padding: 0.5rem 1rem !important;
-            background: #1A1612 !important;
-            z-index: 999 !important;
-        }
-        [data-testid="stChatInput"] {
-            position: fixed !important;
-            bottom: 0 !important;
-            width: 100% !important;
-            background: #1A1612 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -106,11 +84,9 @@ RULES:
 """
 
 def encode_image(uploaded_file):
-    """Convert uploaded file to base64"""
     return base64.standard_b64encode(uploaded_file.read()).decode("utf-8")
 
 def get_image_media_type(uploaded_file):
-    """Get the media type of the uploaded file"""
     file_type = uploaded_file.type
     if file_type in ["image/jpeg", "image/jpg"]:
         return "image/jpeg"
@@ -138,20 +114,19 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Photo upload area
-st.divider()
+# Photo upload
 uploaded_file = st.file_uploader(
-    "📷 Upload a photo of your project or problem (optional)",
+    "📷 Upload a photo (optional)",
     type=["jpg", "jpeg", "png", "webp"],
-    help="Take or upload a photo and Handy Helper will analyze it and give specific advice"
+    help="Upload a photo and Handy Helper will analyze it"
 )
 
 if uploaded_file:
-    st.image(uploaded_file, caption="Your uploaded photo", width=300)
-    st.success("Photo ready! Ask your question below and Handy Helper will analyze it.")
+    st.image(uploaded_file, caption="Your photo", width=200)
+    st.success("Photo ready! Ask your question below.")
 
 # Chat input
-if user_input := st.chat_input("Describe your project or ask a question..."):
+if user_input := st.chat_input("What project are we working on today?"):
 
     if uploaded_file:
         uploaded_file.seek(0)
