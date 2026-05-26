@@ -10,7 +10,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Minimal CSS - only hide branding, nothing that could affect chat input
 st.markdown("""
     <style>
         #MainMenu { visibility: hidden; }
@@ -19,10 +18,44 @@ st.markdown("""
         [data-testid="stToolbar"] { display: none; }
         [data-testid="stDecoration"] { display: none; }
         [data-testid="stBottom"] { display: none !important; }
+        [data-testid="stBottomBlockContainer"] { display: none !important; }
         .block-container {
             padding-top: 0.5rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+        /* Style the text area to look like a chat input */
+        .stTextArea textarea {
+            background: #2C2520 !important;
+            color: #F5F0E8 !important;
+            border: 1px solid rgba(232,82,26,0.3) !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            resize: none !important;
+        }
+        .stTextArea textarea:focus {
+            border-color: #E8521A !important;
+            box-shadow: none !important;
+        }
+        /* Style the send button */
+        .stButton > button {
+            background: #E8521A !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            width: 100% !important;
+            padding: 0.6rem !important;
+        }
+        .stButton > button:hover {
+            background: #C43E0A !important;
+        }
+        /* Hide label text on text area */
+        .stTextArea label { display: none !important; }
+        /* Chat message styling */
+        [data-testid="stChatMessage"] {
+            background: transparent !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -99,7 +132,7 @@ def compress_and_encode(file_bytes):
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-    for scale in [0.75, 0.5, 0.35, 0.25]:
+    for scale in [0.75, 0.5, 0.35]:
         resized = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
         buf = io.BytesIO()
         resized.save(buf, format="JPEG", quality=50, optimize=True)
@@ -130,6 +163,30 @@ if "messages" not in st.session_state:
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
 
+# Motivational banner — only when no messages
+if not st.session_state.messages:
+    st.markdown("""
+        <div style="margin:0.5rem 0 1rem 0; padding:1.25rem;
+            background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
+            border:1px solid rgba(232,82,26,0.3);
+            border-left:4px solid #E8521A; border-radius:8px; text-align:center;">
+            <div style="font-size:22px; margin-bottom:0.4rem;">🔧</div>
+            <div style="font-size:16px; font-weight:700; color:#F5F0E8; margin-bottom:0.4rem;">
+                Every Expert Was Once a Beginner
+            </div>
+            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.6rem;">
+                Ask me anything about your project and let's get it done together.
+            </div>
+            <div style="display:flex; justify-content:center; gap:0.6rem;">
+                <span style="font-size:9px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
+                <span style="font-size:9px; color:#8A7E76;">•</span>
+                <span style="font-size:9px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
+                <span style="font-size:9px; color:#8A7E76;">•</span>
+                <span style="font-size:9px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
 # Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -139,30 +196,6 @@ for message in st.session_state.messages:
                     st.markdown(block["text"])
         else:
             st.markdown(message["content"])
-
-# Motivational banner — only when no messages
-if not st.session_state.messages:
-    st.markdown("""
-        <div style="margin:1rem 0; padding:1.25rem;
-            background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
-            border:1px solid rgba(232,82,26,0.3);
-            border-left:4px solid #E8521A; border-radius:8px; text-align:center;">
-            <div style="font-size:22px; margin-bottom:0.5rem;">🔧</div>
-            <div style="font-size:17px; font-weight:700; color:#F5F0E8; margin-bottom:0.5rem;">
-                Every Expert Was Once a Beginner
-            </div>
-            <div style="font-size:12px; color:#8A7E76; max-width:300px; margin:0 auto 0.75rem;">
-                Ask me anything about your project and let's get it done together.
-            </div>
-            <div style="display:flex; justify-content:center; gap:0.75rem;">
-                <span style="font-size:10px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
-                <span style="font-size:10px; color:#8A7E76;">•</span>
-                <span style="font-size:10px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
-                <span style="font-size:10px; color:#8A7E76;">•</span>
-                <span style="font-size:10px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
 
 # Photo upload
 uploaded_file = st.file_uploader(
@@ -180,15 +213,24 @@ if uploaded_file is not None:
         "name": uploaded_file.name,
         "bytes": raw_bytes
     }
-    st.image(io.BytesIO(raw_bytes), caption="Photo ready!", width=180)
-    st.success("✓ Photo ready! Type your question below.")
+    st.image(io.BytesIO(raw_bytes), caption="Photo ready!", width=160)
+    st.success("✓ Photo attached! Type your question and click Send.")
 else:
     st.session_state.pending_image = None
 
-# Chat input
-prompt = st.chat_input("What project are we working on today?")
+# Text input and send button — always visible
+user_input = st.text_area(
+    "question",
+    placeholder="What project are we working on today?",
+    height=80,
+    key="user_input_box",
+    label_visibility="collapsed"
+)
 
-if prompt:
+send_clicked = st.button("🔧 Send to Handy Helper")
+
+if send_clicked and user_input.strip():
+    prompt = user_input.strip()
     pending = st.session_state.pending_image
 
     if pending:
@@ -252,4 +294,6 @@ if prompt:
 
         st.markdown(reply)
         st.session_state.messages.append({"role": "assistant", "content": reply})
+
     st.session_state.pending_image = None
+    st.rerun()
