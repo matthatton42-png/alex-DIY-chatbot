@@ -21,16 +21,28 @@ st.markdown("""
         [data-testid="stDecoration"] { display: none; }
         [data-testid="stStatusWidget"] { display: none; }
         [data-testid="stHeader"] { display: none; }
-        [data-testid="stCaption"] { display: none; }
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
         h1 { display: none; }
         .block-container {
             padding-top: 0.75rem !important;
-            padding-bottom: 1rem !important;
+            padding-bottom: 5rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             max-width: 100% !important;
+        }
+        [data-testid="stChatInput"] {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        [data-testid="stChatInputContainer"] {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        section[data-testid="stChatInput"] {
+            display: block !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -46,7 +58,6 @@ except Exception as e:
     st.error(f"Failed to initialize client: {e}")
     st.stop()
 
-# System prompt
 system_prompt = """
 You are a helpful assistant named Handy Helper for DIY Services.
 
@@ -88,73 +99,72 @@ RULES:
 - Keep responses clear and practical
 """
 
-def compress_and_encode_image(uploaded_file):
-    """Read, compress if needed, and encode image to base64"""
-    # Read the raw bytes
-    img_bytes = uploaded_file.read()
-    MAX_SIZE = 4 * 1024 * 1024  # 4MB to stay safely under Claude's 5MB limit
+def compress_and_encode(file_bytes):
+    """Compress image bytes to under 4MB and return base64 string"""
+    MAX = 4 * 1024 * 1024
 
-    # If already small enough return as is
-    if len(img_bytes) <= MAX_SIZE:
-        return base64.standard_b64encode(img_bytes).decode("utf-8"), uploaded_file.type
+    if len(file_bytes) <= MAX:
+        return base64.standard_b64encode(file_bytes).decode("utf-8"), None
 
-    # Need to compress — open with Pillow
-    img = Image.open(io.BytesIO(img_bytes))
+    img = Image.open(io.BytesIO(file_bytes))
 
-    # Convert transparency modes to RGB for JPEG compatibility
+    # Convert to RGB
     if img.mode in ("RGBA", "P", "LA"):
-        background = Image.new("RGB", img.size, (255, 255, 255))
+        bg = Image.new("RGB", img.size, (255, 255, 255))
         if img.mode == "RGBA":
-            background.paste(img, mask=img.split()[3])
+            bg.paste(img, mask=img.split()[3])
         else:
-            background.paste(img)
-        img = background
+            bg.paste(img)
+        img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
 
-    # Try progressively lower quality first
+    # Try quality reduction
     for quality in [80, 65, 50, 35]:
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=quality, optimize=True)
-        compressed = buffer.getvalue()
-        if len(compressed) <= MAX_SIZE:
-            return base64.standard_b64encode(compressed).decode("utf-8"), "image/jpeg"
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        data = buf.getvalue()
+        if len(data) <= MAX:
+            return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
 
-    # If quality reduction not enough also resize
-    scale = 0.75
-    while scale >= 0.25:
-        new_w = int(img.width * scale)
-        new_h = int(img.height * scale)
-        resized = img.resize((new_w, new_h), Image.LANCZOS)
-        buffer = io.BytesIO()
-        resized.save(buffer, format="JPEG", quality=50, optimize=True)
-        compressed = buffer.getvalue()
-        if len(compressed) <= MAX_SIZE:
-            return base64.standard_b64encode(compressed).decode("utf-8"), "image/jpeg"
-        scale -= 0.25
+    # Try resizing
+    for scale in [0.75, 0.5, 0.35, 0.25]:
+        resized = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+        buf = io.BytesIO()
+        resized.save(buf, format="JPEG", quality=50, optimize=True)
+        data = buf.getvalue()
+        if len(data) <= MAX:
+            return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
 
-    # Last resort — very small thumbnail
+    # Last resort
     img.thumbnail((800, 800), Image.LANCZOS)
-    buffer = io.BytesIO()
-    img.save(buffer, format="JPEG", quality=40, optimize=True)
-    return base64.standard_b64encode(buffer.getvalue()).decode("utf-8"), "image/jpeg"
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=40)
+    return base64.standard_b64encode(buf.getvalue()).decode("utf-8"), "image/jpeg"
 
-def get_image_media_type(uploaded_file):
-    """Get the media type of the uploaded file"""
-    file_type = uploaded_file.type
-    if file_type in ["image/jpeg", "image/jpg"]:
+def get_media_type(uploaded_file, override_type=None):
+    if override_type:
+        return override_type
+    ft = uploaded_file.type
+    if ft in ["image/jpeg", "image/jpg"]:
         return "image/jpeg"
-    elif file_type == "image/png":
+    elif ft == "image/png":
         return "image/png"
-    elif file_type == "image/gif":
+    elif ft == "image/gif":
         return "image/gif"
-    elif file_type == "image/webp":
+    elif ft == "image/webp":
         return "image/webp"
     return "image/jpeg"
 
-# Initialize chat history
+# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "image_data" not in st.session_state:
+    st.session_state.image_data = None
+if "image_type" not in st.session_state:
+    st.session_state.image_type = None
+if "image_name" not in st.session_state:
+    st.session_state.image_name = None
 
 # Display chat history
 for message in st.session_state.messages:
@@ -163,8 +173,6 @@ for message in st.session_state.messages:
             for block in message["content"]:
                 if isinstance(block, dict) and block.get("type") == "text":
                     st.markdown(block["text"])
-                elif isinstance(block, dict) and block.get("type") == "image_url":
-                    st.image(block["url"], caption="Uploaded photo", width=300)
         else:
             st.markdown(message["content"])
 
@@ -175,65 +183,61 @@ uploaded_file = st.file_uploader(
     help="Upload a photo and Handy Helper will analyze it"
 )
 
-if uploaded_file:
-    st.image(uploaded_file, caption="Your photo", width=200)
-    st.success("Photo ready! Ask your question below.")
+# Process uploaded file and store in session state
+if uploaded_file is not None:
+    raw_bytes = uploaded_file.read()
+    encoded, override_type = compress_and_encode(raw_bytes)
+    st.session_state.image_data = encoded
+    st.session_state.image_type = get_media_type(uploaded_file, override_type)
+    st.session_state.image_name = uploaded_file.name
+    st.image(io.BytesIO(raw_bytes), caption="Your photo", width=200)
+    st.success("Photo ready! Type your question below.")
+else:
+    st.session_state.image_data = None
+    st.session_state.image_type = None
+    st.session_state.image_name = None
 
-# Motivational banner — only shows before first message
+# Motivational banner
 if not st.session_state.messages:
     st.markdown("""
         <div style="
-            margin: 2rem 0;
-            padding: 1.5rem;
+            margin: 1.5rem 0;
+            padding: 1.25rem;
             background: linear-gradient(135deg, #2C2520 0%, #1A1612 100%);
             border: 1px solid rgba(232,82,26,0.3);
             border-left: 4px solid #E8521A;
             border-radius: 8px;
             text-align: center;">
-            <div style="font-size: 28px; margin-bottom: 0.75rem;">🔧</div>
-            <div style="
-                font-family: sans-serif;
-                font-size: 20px;
-                font-weight: 700;
-                color: #F5F0E8;
-                line-height: 1.3;
-                margin-bottom: 0.75rem;
-                letter-spacing: 0.5px;">
+            <div style="font-size: 24px; margin-bottom: 0.5rem;">🔧</div>
+            <div style="font-size: 18px; font-weight: 700; color: #F5F0E8; margin-bottom: 0.5rem;">
                 Every Expert Was Once a Beginner
             </div>
-            <div style="
-                font-size: 13px;
-                color: #8A7E76;
-                line-height: 1.6;
-                max-width: 320px;
-                margin: 0 auto 1rem;">
-                You already have what it takes. Ask me anything about your project and let's get it done together.
+            <div style="font-size: 12px; color: #8A7E76; max-width: 300px; margin: 0 auto 0.75rem;">
+                Ask me anything about your project and let's get it done together.
             </div>
-            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">37+ CATEGORIES</span>
-                <span style="font-size: 11px; color: #8A7E76;">•</span>
-                <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">PHOTO ANALYSIS</span>
-                <span style="font-size: 11px; color: #8A7E76;">•</span>
-                <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">FREE 24/7</span>
+            <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+                <span style="font-size: 10px; color: #E8521A; font-family: monospace;">37+ CATEGORIES</span>
+                <span style="font-size: 10px; color: #8A7E76;">•</span>
+                <span style="font-size: 10px; color: #E8521A; font-family: monospace;">PHOTO ANALYSIS</span>
+                <span style="font-size: 10px; color: #8A7E76;">•</span>
+                <span style="font-size: 10px; color: #E8521A; font-family: monospace;">FREE 24/7</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-# Chat input
-if user_input := st.chat_input("What project are we working on today?"):
+# Chat input — always visible
+user_input = st.chat_input("What project are we working on today?")
 
-    if uploaded_file:
-        # Reset file pointer and compress
-        uploaded_file.seek(0)
-        image_data, media_type = compress_and_encode_image(uploaded_file)
-
+if user_input:
+    # Build message content
+    if st.session_state.image_data:
         user_content = [
             {
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": media_type,
-                    "data": image_data
+                    "media_type": st.session_state.image_type,
+                    "data": st.session_state.image_data
                 }
             },
             {
@@ -242,17 +246,14 @@ if user_input := st.chat_input("What project are we working on today?"):
             }
         ]
         display_content = [
-            {"type": "image_url", "url": uploaded_file.name},
-            {"type": "text", "text": user_input}
+            {"type": "text", "text": f"[Photo: {st.session_state.image_name}] {user_input}"}
         ]
     else:
         user_content = user_input
         display_content = user_input
 
+    # Show user message
     with st.chat_message("user"):
-        if uploaded_file:
-            uploaded_file.seek(0)
-            st.image(uploaded_file, caption="Your photo", width=200)
         st.markdown(user_input)
 
     st.session_state.messages.append({
@@ -260,6 +261,7 @@ if user_input := st.chat_input("What project are we working on today?"):
         "content": display_content
     })
 
+    # Build conversation history
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
@@ -273,6 +275,7 @@ if user_input := st.chat_input("What project are we working on today?"):
 
     conversation.append({"role": "user", "content": user_content})
 
+    # Get response
     with st.chat_message("assistant"):
         with st.spinner("Handy Helper is analyzing..."):
             try:
@@ -317,3 +320,8 @@ if user_input := st.chat_input("What project are we working on today?"):
             "role": "assistant",
             "content": reply
         })
+
+    # Clear image after sending
+    st.session_state.image_data = None
+    st.session_state.image_type = None
+    st.session_state.image_name = None
