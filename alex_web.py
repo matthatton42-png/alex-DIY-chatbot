@@ -68,6 +68,47 @@ st.markdown("""
         .stButton > button:hover { background: #C43E0A !important; }
         .stButton > button:focus { box-shadow: none !important; }
     </style>
+    <script>
+        // Auto-scroll to spinner when thinking, then to answer when returned
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) {
+                        // Scroll to spinner when it appears
+                        var spinner = node.querySelector
+                            ? node.querySelector('[data-testid="stSpinner"]')
+                            : null;
+                        if (spinner) {
+                            setTimeout(function() {
+                                spinner.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                            }, 100);
+                        }
+                        // Scroll to new assistant message when it appears
+                        var msgs = node.querySelectorAll
+                            ? node.querySelectorAll('[data-testid="stChatMessage"]')
+                            : [];
+                        if (msgs.length > 0) {
+                            var last = msgs[msgs.length - 1];
+                            setTimeout(function() {
+                                last.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            }, 150);
+                        }
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    </script>
 """, unsafe_allow_html=True)
 
 # Initialize Anthropic client
@@ -373,4 +414,17 @@ if send and user_input and user_input.strip():
         st.session_state.messages.append({"role": "assistant", "content": reply})
 
     st.session_state.pending_image = None
+    st.markdown("""
+        <script>
+            setTimeout(function() {
+                var msgs = document.querySelectorAll('[data-testid="stChatMessage"]');
+                if (msgs.length > 0) {
+                    msgs[msgs.length - 1].scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }, 300);
+        </script>
+    """, unsafe_allow_html=True)
     st.rerun()
