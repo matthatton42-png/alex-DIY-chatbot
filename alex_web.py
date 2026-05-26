@@ -19,66 +19,80 @@ st.markdown("""
         [data-testid="stDecoration"] { display: none; }
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
+
+        /* Full height layout */
+        .stApp { height: 100vh; overflow: hidden; }
         .block-container {
-            padding-top: 0 !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            padding-bottom: 1rem !important;
+            padding: 0.5rem 1rem 0.5rem 1rem !important;
             height: 100vh !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: space-between !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+
+        /* Push upload and input to bottom */
+        .main-spacer { flex: 1; }
+
+        /* File uploader */
+        [data-testid="stFileUploader"] {
+            margin-bottom: 0.5rem !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
-        [data-testid="stFileUploader"] {
-            margin: 0 !important;
+        [data-testid="stFileUploaderDropzone"] {
+            padding: 0.6rem 1rem !important;
+            background: #2C2520 !important;
+            border: 1px solid rgba(232,82,26,0.25) !important;
+            border-radius: 10px !important;
         }
-        .hh-form {
-            display: flex;
-            align-items: flex-end;
-            background: #2C2520;
-            border: 1px solid rgba(232,82,26,0.3);
-            border-radius: 12px;
-            padding: 8px 8px 8px 12px;
-            gap: 8px;
+
+        /* Text area */
+        .stTextArea { margin: 0 !important; }
+        .stTextArea label { display: none !important; }
+        .stTextArea textarea {
+            background: #2C2520 !important;
+            color: #F5F0E8 !important;
+            border: 1px solid rgba(232,82,26,0.3) !important;
+            border-radius: 12px !important;
+            font-size: 14px !important;
+            resize: none !important;
+            padding: 12px 16px !important;
+            min-height: 70px !important;
         }
-        .hh-form:focus-within {
-            border-color: #E8521A;
+        .stTextArea textarea:focus {
+            border-color: #E8521A !important;
+            box-shadow: none !important;
         }
-        .hh-textarea {
+        .stTextArea textarea::placeholder { color: #8A7E76 !important; }
+
+        /* Send button */
+        .stButton { margin: 0 !important; }
+        .stButton > button {
+            background: #E8521A !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-size: 20px !important;
+            height: 70px !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin-top: 0 !important;
+        }
+        .stButton > button:hover { background: #C43E0A !important; }
+
+        /* Column alignment */
+        div[data-testid="stHorizontalBlock"] {
+            align-items: flex-end !important;
+            gap: 8px !important;
+            margin-top: 0.4rem !important;
+        }
+
+        /* Chat messages scroll area */
+        .chat-scroll {
+            overflow-y: auto;
             flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #F5F0E8;
-            font-size: 14px;
-            font-family: sans-serif;
-            resize: none;
-            line-height: 1.5;
-            min-height: 44px;
-            max-height: 120px;
+            padding-bottom: 0.5rem;
         }
-        .hh-textarea::placeholder {
-            color: #8A7E76;
-        }
-        .hh-send {
-            background: #E8521A;
-            border: none;
-            border-radius: 8px;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 16px;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-        .hh-send:hover { background: #C43E0A; }
-        .spacer { flex: 1; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -154,7 +168,6 @@ def compress_and_encode(file_bytes, max_size_mb=4):
         img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
-    # Aggressively resize mobile photos first
     if img.width > 1920 or img.height > 1920:
         img.thumbnail((1920, 1920), Image.LANCZOS)
     for quality in [85, 70, 55, 40, 25]:
@@ -195,25 +208,24 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
-if "submitted_text" not in st.session_state:
-    st.session_state.submitted_text = ""
 
-# ── TOP SECTION: Motivational banner (only when no messages) ──
+# ── TOP: Motivational banner (only when no chat history) ──
 if not st.session_state.messages:
     st.markdown("""
-        <div style="padding:1.25rem 1rem;
+        <div style="padding:1rem;
             background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
             border:1px solid rgba(232,82,26,0.3);
-            border-left:4px solid #E8521A; border-radius:8px; text-align:center;
-            margin-bottom: 0;">
-            <div style="font-size:22px; margin-bottom:0.4rem;">🔧</div>
-            <div style="font-size:16px; font-weight:700; color:#F5F0E8; margin-bottom:0.4rem;">
+            border-left:4px solid #E8521A;
+            border-radius:8px; text-align:center;
+            margin-bottom:0.5rem;">
+            <div style="font-size:20px; margin-bottom:0.3rem;">🔧</div>
+            <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.3rem;">
                 Every Expert Was Once a Beginner
             </div>
-            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.6rem;">
+            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.5rem;">
                 Ask me anything about your project and let's get it done together.
             </div>
-            <div style="display:flex; justify-content:center; gap:0.75rem;">
+            <div style="display:flex; justify-content:center; gap:0.6rem;">
                 <span style="font-size:9px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
                 <span style="font-size:9px; color:#8A7E76;">•</span>
                 <span style="font-size:9px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
@@ -223,7 +235,7 @@ if not st.session_state.messages:
         </div>
     """, unsafe_allow_html=True)
 
-# Display chat history
+# ── MIDDLE: Chat history ──
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         if isinstance(message["content"], list):
@@ -233,10 +245,10 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Flexible spacer pushes upload and input to bottom
-st.markdown('<div class="spacer"></div>', unsafe_allow_html=True)
+# Flexible spacer — pushes upload + input to bottom
+st.markdown('<div class="main-spacer"></div>', unsafe_allow_html=True)
 
-# ── MIDDLE SECTION: Photo upload ──
+# ── BOTTOM: Photo upload ──
 uploaded_file = st.file_uploader(
     "photo",
     type=["jpg", "jpeg", "png", "webp"],
@@ -247,64 +259,44 @@ if uploaded_file is not None:
     raw_bytes = uploaded_file.read()
     encoded, override = compress_and_encode(raw_bytes)
     media_type = get_media_type(uploaded_file.type, override)
+    # Store in session state immediately so it survives rerun
     st.session_state.pending_image = {
         "data": encoded,
         "media_type": media_type,
         "name": uploaded_file.name,
         "bytes": raw_bytes
     }
-    st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=160)
+    st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=150)
     st.success("✓ Photo attached! Type your question and tap ➤")
+elif st.session_state.pending_image is None:
+    # Nothing uploaded and nothing stored — show placeholder
+    st.markdown(
+        '<p style="font-size:11px; color:#8A7E76; margin:0.1rem 0 0.25rem 0;">📷 Upload a photo (optional)</p>',
+        unsafe_allow_html=True
+    )
 else:
-    st.session_state.pending_image = None
+    # Image stored in session — show it is still attached after rerun
+    st.success("✓ Photo still attached! Type your question and tap ➤")
 
-# ── BOTTOM SECTION: Chat input with send button inside ──
-st.markdown("""
-    <form id="hh-chat-form" onsubmit="submitMessage(event)" style="margin-top:0.5rem;">
-        <div class="hh-form">
-            <textarea
-                id="hh-input"
-                class="hh-textarea"
-                placeholder="What project are we working on today?"
-                rows="2"
-                onkeydown="handleKey(event)"></textarea>
-            <button type="submit" class="hh-send">&#10148;</button>
-        </div>
-    </form>
+# ── BOTTOM: Text input + send button ──
+col1, col2 = st.columns([11, 1])
 
-    <script>
-        function handleKey(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                document.getElementById('hh-chat-form').dispatchEvent(new Event('submit'));
-            }
-        }
-        function submitMessage(e) {
-            e.preventDefault();
-            const input = document.getElementById('hh-input');
-            const text = input.value.trim();
-            if (!text) return;
-            const url = new URL(window.location.href);
-            url.searchParams.set('hh_msg', encodeURIComponent(text));
-            window.location.href = url.toString();
-        }
-    </script>
-""", unsafe_allow_html=True)
+with col1:
+    user_input = st.text_area(
+        "msg",
+        placeholder="What project are we working on today?",
+        height=70,
+        key="chat_input",
+        label_visibility="collapsed"
+    )
 
-# Read submitted message from URL params
-params = st.query_params
-raw_msg = params.get("hh_msg", "")
-try:
-    from urllib.parse import unquote
-    submitted = unquote(raw_msg) if raw_msg else ""
-except Exception:
-    submitted = raw_msg
+with col2:
+    send = st.button("➤", key="send_btn")
 
-if submitted and submitted != st.session_state.submitted_text:
-    st.session_state.submitted_text = submitted
-    prompt = submitted
+# ── PROCESS: Send message ──
+if send and user_input and user_input.strip():
+    prompt = user_input.strip()
     pending = st.session_state.pending_image
-    st.query_params.clear()
 
     if pending:
         user_content = [
@@ -328,10 +320,14 @@ if submitted and submitted != st.session_state.submitted_text:
 
     st.session_state.messages.append({"role": "user", "content": display_content})
 
+    # Build conversation history
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
-            text = " ".join(b["text"] for b in msg["content"] if isinstance(b, dict) and b.get("type") == "text")
+            text = " ".join(
+                b["text"] for b in msg["content"]
+                if isinstance(b, dict) and b.get("type") == "text"
+            )
             conversation.append({"role": msg["role"], "content": text})
         else:
             conversation.append({"role": msg["role"], "content": msg["content"]})
@@ -360,7 +356,10 @@ if submitted and submitted != st.session_state.submitted_text:
                                 })
                         conversation.append({"role": "user", "content": tool_results})
                     else:
-                        reply = "".join(block.text for block in response.content if hasattr(block, "text"))
+                        reply = "".join(
+                            block.text for block in response.content
+                            if hasattr(block, "text")
+                        )
                         break
             except Exception as e:
                 reply = f"Something went wrong: {e}"
@@ -368,5 +367,6 @@ if submitted and submitted != st.session_state.submitted_text:
         st.markdown(reply)
         st.session_state.messages.append({"role": "assistant", "content": reply})
 
+    # Clear image ONLY after successful send
     st.session_state.pending_image = None
     st.rerun()
