@@ -124,8 +124,53 @@ RULES:
 
 def compress_and_encode(file_bytes, max_size_mb=4):
     MAX = max_size_mb * 1024 * 1024
-    if len(file_bytes) <= MAX:
-        return base64.standard_b64encode(file_bytes).decode("utf-8"), None
+
+    try:
+        img = Image.open(io.BytesIO(file_bytes))
+    except Exception:
+        # Can't open as image — truncate and send
+        return base64.standard_b64encode(file_bytes[:MAX]).decode("utf-8"), None
+
+    # Convert to RGB no matter what
+    if img.mode != "RGB":
+        try:
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode == "RGBA":
+                bg.paste(img, mask=img.split()[3])
+            else:
+                bg.paste(img.convert("RGB"))
+            img = bg
+        except Exception:
+            img = img.convert("RGB")
+
+    # Always resize mobile photos down first — phone cameras are 12MP+
+    if img.width > 1280 or img.height > 1280:
+        img.thumbnail((1280, 1280), Image.LANCZOS)
+
+    # Try saving as JPEG at decreasing quality
+    for quality in [82, 70, 58, 45, 32, 20]:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        data = buf.getvalue()
+        if len(data) <= MAX:
+            return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
+
+    # Still too big — keep shrinking dimensions
+    for scale in [0.7, 0.55, 0.4, 0.3, 0.2]:
+        w = max(100, int(img.width * scale))
+        h = max(100, int(img.height * scale))
+        resized = img.resize((w, h), Image.LANCZOS)
+        buf = io.BytesIO()
+        resized.save(buf, format="JPEG", quality=40, optimize=True)
+        data = buf.getvalue()
+        if len(data) <= MAX:
+            return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
+
+    # Absolute last resort
+    img.thumbnail((480, 480), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=25)
+    return base64.standard_b64encode(buf.getvalue()).decode("utf-8"), "image/jpeg"
     try:
         img = Image.open(io.BytesIO(file_bytes))
     except Exception:
