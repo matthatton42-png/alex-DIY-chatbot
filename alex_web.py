@@ -20,15 +20,65 @@ st.markdown("""
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
         .block-container {
-            padding-top: 0.5rem !important;
+            padding-top: 0 !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             padding-bottom: 1rem !important;
+            height: 100vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
-        .stTextArea label { display: none !important; }
-        /* Hide default streamlit text area completely */
-        #hidden-input-area { display: none; }
+        [data-testid="stFileUploader"] {
+            margin: 0 !important;
+        }
+        .hh-form {
+            display: flex;
+            align-items: flex-end;
+            background: #2C2520;
+            border: 1px solid rgba(232,82,26,0.3);
+            border-radius: 12px;
+            padding: 8px 8px 8px 12px;
+            gap: 8px;
+        }
+        .hh-form:focus-within {
+            border-color: #E8521A;
+        }
+        .hh-textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #F5F0E8;
+            font-size: 14px;
+            font-family: sans-serif;
+            resize: none;
+            line-height: 1.5;
+            min-height: 44px;
+            max-height: 120px;
+        }
+        .hh-textarea::placeholder {
+            color: #8A7E76;
+        }
+        .hh-send {
+            background: #E8521A;
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .hh-send:hover { background: #C43E0A; }
+        .spacer { flex: 1; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -104,6 +154,7 @@ def compress_and_encode(file_bytes, max_size_mb=4):
         img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
+    # Aggressively resize mobile photos first
     if img.width > 1920 or img.height > 1920:
         img.thumbnail((1920, 1920), Image.LANCZOS)
     for quality in [85, 70, 55, 40, 25]:
@@ -147,21 +198,22 @@ if "pending_image" not in st.session_state:
 if "submitted_text" not in st.session_state:
     st.session_state.submitted_text = ""
 
-# Motivational banner
+# ── TOP SECTION: Motivational banner (only when no messages) ──
 if not st.session_state.messages:
     st.markdown("""
-        <div style="margin:0.25rem 0 0.75rem 0; padding:1rem;
+        <div style="padding:1.25rem 1rem;
             background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
             border:1px solid rgba(232,82,26,0.3);
-            border-left:4px solid #E8521A; border-radius:8px; text-align:center;">
-            <div style="font-size:20px; margin-bottom:0.35rem;">🔧</div>
-            <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.35rem;">
+            border-left:4px solid #E8521A; border-radius:8px; text-align:center;
+            margin-bottom: 0;">
+            <div style="font-size:22px; margin-bottom:0.4rem;">🔧</div>
+            <div style="font-size:16px; font-weight:700; color:#F5F0E8; margin-bottom:0.4rem;">
                 Every Expert Was Once a Beginner
             </div>
-            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.5rem;">
+            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.6rem;">
                 Ask me anything about your project and let's get it done together.
             </div>
-            <div style="display:flex; justify-content:center; gap:0.6rem;">
+            <div style="display:flex; justify-content:center; gap:0.75rem;">
                 <span style="font-size:9px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
                 <span style="font-size:9px; color:#8A7E76;">•</span>
                 <span style="font-size:9px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
@@ -181,7 +233,10 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Photo upload
+# Flexible spacer pushes upload and input to bottom
+st.markdown('<div class="spacer"></div>', unsafe_allow_html=True)
+
+# ── MIDDLE SECTION: Photo upload ──
 uploaded_file = st.file_uploader(
     "photo",
     type=["jpg", "jpeg", "png", "webp"],
@@ -202,73 +257,17 @@ if uploaded_file is not None:
     st.success("✓ Photo attached! Type your question and tap ➤")
 else:
     st.session_state.pending_image = None
-    st.markdown(
-        '<p style="font-size:12px; color:#8A7E76; margin:0.1rem 0 0.4rem 0;">📷 Upload a photo (optional)</p>',
-        unsafe_allow_html=True
-    )
 
-# Custom chat input with send button INSIDE the box using HTML form
+# ── BOTTOM SECTION: Chat input with send button inside ──
 st.markdown("""
-    <style>
-        .hh-form {
-            display: flex;
-            align-items: flex-end;
-            background: #2C2520;
-            border: 1px solid rgba(232,82,26,0.3);
-            border-radius: 12px;
-            padding: 8px 8px 8px 12px;
-            margin-top: 0.5rem;
-            gap: 8px;
-        }
-        .hh-form:focus-within {
-            border-color: #E8521A;
-        }
-        .hh-textarea {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #F5F0E8;
-            font-size: 14px;
-            font-family: sans-serif;
-            resize: none;
-            line-height: 1.5;
-            min-height: 44px;
-            max-height: 120px;
-        }
-        .hh-textarea::placeholder {
-            color: #8A7E76;
-        }
-        .hh-send {
-            background: #E8521A;
-            border: none;
-            border-radius: 8px;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 16px;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-        .hh-send:hover {
-            background: #C43E0A;
-        }
-    </style>
-
-    <form id="hh-chat-form" onsubmit="submitMessage(event)">
+    <form id="hh-chat-form" onsubmit="submitMessage(event)" style="margin-top:0.5rem;">
         <div class="hh-form">
             <textarea
                 id="hh-input"
                 class="hh-textarea"
                 placeholder="What project are we working on today?"
                 rows="2"
-                onkeydown="handleKey(event)">
-            </textarea>
+                onkeydown="handleKey(event)"></textarea>
             <button type="submit" class="hh-send">&#10148;</button>
         </div>
     </form>
@@ -280,16 +279,13 @@ st.markdown("""
                 document.getElementById('hh-chat-form').dispatchEvent(new Event('submit'));
             }
         }
-
         function submitMessage(e) {
             e.preventDefault();
             const input = document.getElementById('hh-input');
             const text = input.value.trim();
             if (!text) return;
-
-            // Send to Streamlit via query param trick
             const url = new URL(window.location.href);
-            url.searchParams.set('hh_msg', text);
+            url.searchParams.set('hh_msg', encodeURIComponent(text));
             window.location.href = url.toString();
         }
     </script>
@@ -297,14 +293,17 @@ st.markdown("""
 
 # Read submitted message from URL params
 params = st.query_params
-submitted = params.get("hh_msg", "")
+raw_msg = params.get("hh_msg", "")
+try:
+    from urllib.parse import unquote
+    submitted = unquote(raw_msg) if raw_msg else ""
+except Exception:
+    submitted = raw_msg
 
 if submitted and submitted != st.session_state.submitted_text:
     st.session_state.submitted_text = submitted
     prompt = submitted
     pending = st.session_state.pending_image
-
-    # Clear the param
     st.query_params.clear()
 
     if pending:
