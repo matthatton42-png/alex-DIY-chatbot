@@ -25,84 +25,10 @@ st.markdown("""
             padding-right: 1rem !important;
             padding-bottom: 1rem !important;
         }
-        /* Chat input container */
-        .chat-input-wrapper {
-            position: relative;
-            margin-top: 0.75rem;
-        }
-        .chat-input-wrapper textarea {
-            width: 100% !important;
-            background: #2C2520 !important;
-            color: #F5F0E8 !important;
-            border: 1px solid rgba(232,82,26,0.3) !important;
-            border-radius: 12px !important;
-            padding: 12px 50px 12px 16px !important;
-            font-size: 14px !important;
-            font-family: sans-serif !important;
-            resize: none !important;
-            outline: none !important;
-            box-sizing: border-box !important;
-            line-height: 1.5 !important;
-        }
-        .chat-input-wrapper textarea:focus {
-            border-color: #E8521A !important;
-        }
-        .chat-input-wrapper textarea::placeholder {
-            color: #8A7E76 !important;
-        }
-        .send-btn {
-            position: absolute !important;
-            right: 10px !important;
-            bottom: 10px !important;
-            background: #E8521A !important;
-            border: none !important;
-            border-radius: 8px !important;
-            width: 34px !important;
-            height: 34px !important;
-            cursor: pointer !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: white !important;
-            font-size: 16px !important;
-            transition: background 0.2s !important;
-        }
-        .send-btn:hover {
-            background: #C43E0A !important;
-        }
-        /* Hide Streamlit text area label and default styling */
-        .stTextArea { margin: 0 !important; }
-        .stTextArea label { display: none !important; }
-        .stTextArea textarea {
-            background: #2C2520 !important;
-            color: #F5F0E8 !important;
-            border: 1px solid rgba(232,82,26,0.3) !important;
-            border-radius: 12px !important;
-            font-size: 14px !important;
-            resize: none !important;
-            padding-right: 50px !important;
-        }
-        .stTextArea textarea:focus {
-            border-color: #E8521A !important;
-            box-shadow: none !important;
-        }
-        /* Send button styling */
-        .stButton { margin: 0 !important; }
-        .stButton > button {
-            background: #E8521A !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            font-size: 18px !important;
-            padding: 0.4rem 0.75rem !important;
-            line-height: 1 !important;
-            min-height: 36px !important;
-        }
-        .stButton > button:hover {
-            background: #C43E0A !important;
-        }
-        /* File uploader */
         [data-testid="stFileUploader"] label { display: none !important; }
+        .stTextArea label { display: none !important; }
+        /* Hide default streamlit text area completely */
+        #hidden-input-area { display: none; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -159,18 +85,13 @@ RULES:
 """
 
 def compress_and_encode(file_bytes, max_size_mb=4):
-    """Compress image to under max_size_mb and return base64"""
     MAX = max_size_mb * 1024 * 1024
-
     if len(file_bytes) <= MAX:
         return base64.standard_b64encode(file_bytes).decode("utf-8"), None
-
     try:
         img = Image.open(io.BytesIO(file_bytes))
     except Exception:
         return base64.standard_b64encode(file_bytes[:MAX]).decode("utf-8"), None
-
-    # Convert to RGB
     if img.mode in ("RGBA", "P", "LA", "CMYK"):
         bg = Image.new("RGB", img.size, (255, 255, 255))
         try:
@@ -183,21 +104,14 @@ def compress_and_encode(file_bytes, max_size_mb=4):
         img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
-
-    # Resize large images first — mobile photos can be huge
-    max_dimension = 1920
-    if img.width > max_dimension or img.height > max_dimension:
-        img.thumbnail((max_dimension, max_dimension), Image.LANCZOS)
-
-    # Try quality reduction
+    if img.width > 1920 or img.height > 1920:
+        img.thumbnail((1920, 1920), Image.LANCZOS)
     for quality in [85, 70, 55, 40, 25]:
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=quality, optimize=True)
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-
-    # Try resizing further
     for scale in [0.75, 0.6, 0.5, 0.4, 0.3]:
         w = max(100, int(img.width * scale))
         h = max(100, int(img.height * scale))
@@ -207,8 +121,6 @@ def compress_and_encode(file_bytes, max_size_mb=4):
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-
-    # Absolute last resort
     img.thumbnail((640, 640), Image.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=30)
@@ -232,6 +144,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
+if "submitted_text" not in st.session_state:
+    st.session_state.submitted_text = ""
 
 # Motivational banner
 if not st.session_state.messages:
@@ -287,35 +201,111 @@ if uploaded_file is not None:
     st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=160)
     st.success("✓ Photo attached! Type your question and tap ➤")
 else:
-    if "last_file" not in st.session_state or st.session_state.get("last_file") != uploaded_file:
-        st.session_state.pending_image = None
+    st.session_state.pending_image = None
     st.markdown(
-        '<p style="font-size:12px; color:#8A7E76; margin:0.25rem 0 0.5rem 0;">📷 Upload a photo (optional)</p>',
+        '<p style="font-size:12px; color:#8A7E76; margin:0.1rem 0 0.4rem 0;">📷 Upload a photo (optional)</p>',
         unsafe_allow_html=True
     )
 
-st.session_state.last_file = uploaded_file
+# Custom chat input with send button INSIDE the box using HTML form
+st.markdown("""
+    <style>
+        .hh-form {
+            display: flex;
+            align-items: flex-end;
+            background: #2C2520;
+            border: 1px solid rgba(232,82,26,0.3);
+            border-radius: 12px;
+            padding: 8px 8px 8px 12px;
+            margin-top: 0.5rem;
+            gap: 8px;
+        }
+        .hh-form:focus-within {
+            border-color: #E8521A;
+        }
+        .hh-textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #F5F0E8;
+            font-size: 14px;
+            font-family: sans-serif;
+            resize: none;
+            line-height: 1.5;
+            min-height: 44px;
+            max-height: 120px;
+        }
+        .hh-textarea::placeholder {
+            color: #8A7E76;
+        }
+        .hh-send {
+            background: #E8521A;
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .hh-send:hover {
+            background: #C43E0A;
+        }
+    </style>
 
-# Input row — text area + send button side by side
-col1, col2 = st.columns([9, 1])
+    <form id="hh-chat-form" onsubmit="submitMessage(event)">
+        <div class="hh-form">
+            <textarea
+                id="hh-input"
+                class="hh-textarea"
+                placeholder="What project are we working on today?"
+                rows="2"
+                onkeydown="handleKey(event)">
+            </textarea>
+            <button type="submit" class="hh-send">&#10148;</button>
+        </div>
+    </form>
 
-with col1:
-    user_input = st.text_area(
-        "msg",
-        placeholder="What project are we working on today?",
-        height=80,
-        key="chat_input",
-        label_visibility="collapsed"
-    )
+    <script>
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('hh-chat-form').dispatchEvent(new Event('submit'));
+            }
+        }
 
-with col2:
-    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-    send = st.button("➤", key="send_btn", help="Send message")
+        function submitMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('hh-input');
+            const text = input.value.trim();
+            if (!text) return;
 
-# Process on send
-if send and user_input and user_input.strip():
-    prompt = user_input.strip()
+            // Send to Streamlit via query param trick
+            const url = new URL(window.location.href);
+            url.searchParams.set('hh_msg', text);
+            window.location.href = url.toString();
+        }
+    </script>
+""", unsafe_allow_html=True)
+
+# Read submitted message from URL params
+params = st.query_params
+submitted = params.get("hh_msg", "")
+
+if submitted and submitted != st.session_state.submitted_text:
+    st.session_state.submitted_text = submitted
+    prompt = submitted
     pending = st.session_state.pending_image
+
+    # Clear the param
+    st.query_params.clear()
 
     if pending:
         user_content = [
@@ -339,7 +329,6 @@ if send and user_input and user_input.strip():
 
     st.session_state.messages.append({"role": "user", "content": display_content})
 
-    # Build conversation
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
@@ -349,7 +338,6 @@ if send and user_input and user_input.strip():
             conversation.append({"role": msg["role"], "content": msg["content"]})
     conversation.append({"role": "user", "content": user_content})
 
-    # Get response
     with st.chat_message("assistant"):
         with st.spinner("Handy Helper is thinking..."):
             try:
