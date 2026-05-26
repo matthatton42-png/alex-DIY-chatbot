@@ -7,7 +7,7 @@ from PIL import Image
 st.set_page_config(
     page_title="Handy Helper - DIY Services Assistant",
     page_icon="🔧",
-    layout="centered"
+    layout="wide"
 )
 
 st.markdown("""
@@ -29,20 +29,21 @@ st.markdown("""
             padding-bottom: 5rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-            max-width: 100% !important;
         }
-        [data-testid="stChatInput"] {
+        .stChatFloatingInputContainer {
             display: block !important;
             visibility: visible !important;
-            opacity: 1 !important;
+            position: fixed !important;
+            bottom: 1rem !important;
+            left: 0 !important;
+            right: 0 !important;
+            padding: 0 1rem !important;
+            background: transparent !important;
+            z-index: 999 !important;
         }
-        [data-testid="stChatInputContainer"] {
+        [data-testid="stChatInput"] textarea {
             display: block !important;
             visibility: visible !important;
-            opacity: 1 !important;
-        }
-        section[data-testid="stChatInput"] {
-            display: block !important;
         }
     </style>
 """, unsafe_allow_html=True)
