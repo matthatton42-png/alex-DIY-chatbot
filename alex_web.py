@@ -20,21 +20,17 @@ st.markdown("""
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
         .block-container {
-            padding: 1rem !important;
+            padding: 1.5rem 1rem 1rem 1rem !important;
             max-width: 100% !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
-
-        /* Center the whole page content vertically */
-        .center-wrap {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 80vh;
-            gap: 0.75rem;
+        [data-testid="stTextInput"] {
+            position: absolute !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
         }
-
-        /* Chat input with button inside */
         .hh-form {
             display: flex;
             align-items: flex-end;
@@ -43,6 +39,7 @@ st.markdown("""
             border-radius: 12px;
             padding: 8px 8px 8px 12px;
             gap: 8px;
+            margin-top: 0.75rem;
         }
         .hh-form:focus-within { border-color: #E8521A; }
         .hh-textarea {
@@ -72,15 +69,6 @@ st.markdown("""
             flex-shrink: 0;
         }
         .hh-send:hover { background: #C43E0A; }
-
-        /* Hide the st.text_input used for message passing */
-        [data-testid="stTextInput"] {
-            position: absolute !important;
-            opacity: 0 !important;
-            height: 0 !important;
-            pointer-events: none !important;
-            overflow: hidden !important;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -199,7 +187,7 @@ if "pending_image" not in st.session_state:
 if "submitted_text" not in st.session_state:
     st.session_state.submitted_text = ""
 
-# Chat history
+# ── 1. Chat history ──
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         if isinstance(message["content"], list):
@@ -209,13 +197,10 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Opening layout — centered when no messages
-st.markdown('<div class="center-wrap">', unsafe_allow_html=True)
-
-# Motivational banner
+# ── 2. Motivational banner (only when no messages) ──
 if not st.session_state.messages:
     st.markdown("""
-        <div style="padding:1.25rem;
+        <div style="padding:1.25rem; margin-bottom:0.75rem;
             background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
             border:1px solid rgba(232,82,26,0.3);
             border-left:4px solid #E8521A;
@@ -237,7 +222,7 @@ if not st.session_state.messages:
         </div>
     """, unsafe_allow_html=True)
 
-# Photo upload
+# ── 3. Photo upload ──
 uploaded_file = st.file_uploader(
     "photo",
     type=["jpg", "jpeg", "png", "webp"],
@@ -264,7 +249,7 @@ elif st.session_state.pending_image is None:
 else:
     st.success("✓ Photo still attached! Type your question and tap ➤")
 
-# Custom HTML chat input with ➤ inside
+# ── 4. Chat input with ➤ inside ──
 st.markdown("""
     <div class="hh-form">
         <textarea id="hh-input" class="hh-textarea"
@@ -278,8 +263,8 @@ st.markdown("""
         if (!text) return;
         var hiddenInput = window.parent.document.querySelector('[data-testid="stTextInput"] input');
         if (hiddenInput) {
-            var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            nativeInputValueSetter.call(hiddenInput, text);
+            var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            setter.call(hiddenInput, text);
             hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
             document.getElementById('hh-input').value = '';
         }
@@ -293,12 +278,10 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Invisible Streamlit input that receives the message
+# Invisible Streamlit input
 user_msg = st.text_input("h", key="hidden_msg", label_visibility="collapsed")
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Process message
+# ── 5. Process message ──
 if user_msg and user_msg.strip() and user_msg.strip() != st.session_state.submitted_text:
     st.session_state.submitted_text = user_msg.strip()
     prompt = user_msg.strip()
