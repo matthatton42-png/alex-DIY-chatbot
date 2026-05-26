@@ -270,7 +270,7 @@ if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
 
 # ── 1. Chat history ──
-for message in st.session_state.messages:
+for i, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         if isinstance(message["content"], list):
             for block in message["content"]:
@@ -278,6 +278,15 @@ for message in st.session_state.messages:
                     st.markdown(block["text"])
         else:
             st.markdown(message["content"])
+
+# After rerun scroll to last message
+if st.session_state.messages:
+    last_index = len(st.session_state.messages) - 1
+    st.markdown(
+        f'<div id="msg-{last_index}"></div>'
+        f'<script>document.getElementById("msg-{last_index}").scrollIntoView({{behavior:"smooth",block:"start"}});</script>',
+        unsafe_allow_html=True
+    )
 
 # ── 2. Motivational banner ──
 if not st.session_state.messages:
@@ -412,6 +421,7 @@ if send and user_input and user_input.strip():
 
         st.markdown(reply)
         st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.session_state["scroll_to_bottom"] = True
 
     st.session_state.pending_image = None
     st.markdown("""
