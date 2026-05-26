@@ -25,38 +25,84 @@ st.markdown("""
             padding-right: 1rem !important;
             padding-bottom: 1rem !important;
         }
-        /* Style the text area to look like a chat input */
+        /* Chat input container */
+        .chat-input-wrapper {
+            position: relative;
+            margin-top: 0.75rem;
+        }
+        .chat-input-wrapper textarea {
+            width: 100% !important;
+            background: #2C2520 !important;
+            color: #F5F0E8 !important;
+            border: 1px solid rgba(232,82,26,0.3) !important;
+            border-radius: 12px !important;
+            padding: 12px 50px 12px 16px !important;
+            font-size: 14px !important;
+            font-family: sans-serif !important;
+            resize: none !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            line-height: 1.5 !important;
+        }
+        .chat-input-wrapper textarea:focus {
+            border-color: #E8521A !important;
+        }
+        .chat-input-wrapper textarea::placeholder {
+            color: #8A7E76 !important;
+        }
+        .send-btn {
+            position: absolute !important;
+            right: 10px !important;
+            bottom: 10px !important;
+            background: #E8521A !important;
+            border: none !important;
+            border-radius: 8px !important;
+            width: 34px !important;
+            height: 34px !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: white !important;
+            font-size: 16px !important;
+            transition: background 0.2s !important;
+        }
+        .send-btn:hover {
+            background: #C43E0A !important;
+        }
+        /* Hide Streamlit text area label and default styling */
+        .stTextArea { margin: 0 !important; }
+        .stTextArea label { display: none !important; }
         .stTextArea textarea {
             background: #2C2520 !important;
             color: #F5F0E8 !important;
             border: 1px solid rgba(232,82,26,0.3) !important;
-            border-radius: 8px !important;
+            border-radius: 12px !important;
             font-size: 14px !important;
             resize: none !important;
+            padding-right: 50px !important;
         }
         .stTextArea textarea:focus {
             border-color: #E8521A !important;
             box-shadow: none !important;
         }
-        /* Style the send button */
+        /* Send button styling */
+        .stButton { margin: 0 !important; }
         .stButton > button {
             background: #E8521A !important;
             color: white !important;
             border: none !important;
             border-radius: 8px !important;
-            font-weight: 600 !important;
-            width: 100% !important;
-            padding: 0.6rem !important;
+            font-size: 18px !important;
+            padding: 0.4rem 0.75rem !important;
+            line-height: 1 !important;
+            min-height: 36px !important;
         }
         .stButton > button:hover {
             background: #C43E0A !important;
         }
-        /* Hide label text on text area */
-        .stTextArea label { display: none !important; }
-        /* Chat message styling */
-        [data-testid="stChatMessage"] {
-            background: transparent !important;
-        }
+        /* File uploader */
+        [data-testid="stFileUploader"] label { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -112,36 +158,60 @@ RULES:
 - Keep responses clear and practical
 """
 
-def compress_and_encode(file_bytes):
-    MAX = 4 * 1024 * 1024
+def compress_and_encode(file_bytes, max_size_mb=4):
+    """Compress image to under max_size_mb and return base64"""
+    MAX = max_size_mb * 1024 * 1024
+
     if len(file_bytes) <= MAX:
         return base64.standard_b64encode(file_bytes).decode("utf-8"), None
-    img = Image.open(io.BytesIO(file_bytes))
-    if img.mode in ("RGBA", "P", "LA"):
+
+    try:
+        img = Image.open(io.BytesIO(file_bytes))
+    except Exception:
+        return base64.standard_b64encode(file_bytes[:MAX]).decode("utf-8"), None
+
+    # Convert to RGB
+    if img.mode in ("RGBA", "P", "LA", "CMYK"):
         bg = Image.new("RGB", img.size, (255, 255, 255))
-        if img.mode == "RGBA":
-            bg.paste(img, mask=img.split()[3])
-        else:
+        try:
+            if img.mode == "RGBA":
+                bg.paste(img, mask=img.split()[3])
+            else:
+                bg.paste(img)
+        except Exception:
             bg.paste(img)
         img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
-    for quality in [80, 65, 50, 35]:
+
+    # Resize large images first — mobile photos can be huge
+    max_dimension = 1920
+    if img.width > max_dimension or img.height > max_dimension:
+        img.thumbnail((max_dimension, max_dimension), Image.LANCZOS)
+
+    # Try quality reduction
+    for quality in [85, 70, 55, 40, 25]:
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=quality, optimize=True)
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-    for scale in [0.75, 0.5, 0.35]:
-        resized = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+
+    # Try resizing further
+    for scale in [0.75, 0.6, 0.5, 0.4, 0.3]:
+        w = max(100, int(img.width * scale))
+        h = max(100, int(img.height * scale))
+        resized = img.resize((w, h), Image.LANCZOS)
         buf = io.BytesIO()
-        resized.save(buf, format="JPEG", quality=50, optimize=True)
+        resized.save(buf, format="JPEG", quality=40, optimize=True)
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-    img.thumbnail((800, 800), Image.LANCZOS)
+
+    # Absolute last resort
+    img.thumbnail((640, 640), Image.LANCZOS)
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=40)
+    img.save(buf, format="JPEG", quality=30)
     return base64.standard_b64encode(buf.getvalue()).decode("utf-8"), "image/jpeg"
 
 def get_media_type(file_type, override=None):
@@ -163,18 +233,18 @@ if "messages" not in st.session_state:
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
 
-# Motivational banner — only when no messages
+# Motivational banner
 if not st.session_state.messages:
     st.markdown("""
-        <div style="margin:0.5rem 0 1rem 0; padding:1.25rem;
+        <div style="margin:0.25rem 0 0.75rem 0; padding:1rem;
             background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
             border:1px solid rgba(232,82,26,0.3);
             border-left:4px solid #E8521A; border-radius:8px; text-align:center;">
-            <div style="font-size:22px; margin-bottom:0.4rem;">🔧</div>
-            <div style="font-size:16px; font-weight:700; color:#F5F0E8; margin-bottom:0.4rem;">
+            <div style="font-size:20px; margin-bottom:0.35rem;">🔧</div>
+            <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.35rem;">
                 Every Expert Was Once a Beginner
             </div>
-            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.6rem;">
+            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.5rem;">
                 Ask me anything about your project and let's get it done together.
             </div>
             <div style="display:flex; justify-content:center; gap:0.6rem;">
@@ -199,8 +269,9 @@ for message in st.session_state.messages:
 
 # Photo upload
 uploaded_file = st.file_uploader(
-    "📷 Upload a photo (optional)",
-    type=["jpg", "jpeg", "png", "webp"]
+    "photo",
+    type=["jpg", "jpeg", "png", "webp"],
+    label_visibility="collapsed"
 )
 
 if uploaded_file is not None:
@@ -213,23 +284,36 @@ if uploaded_file is not None:
         "name": uploaded_file.name,
         "bytes": raw_bytes
     }
-    st.image(io.BytesIO(raw_bytes), caption="Photo ready!", width=160)
-    st.success("✓ Photo attached! Type your question and click Send.")
+    st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=160)
+    st.success("✓ Photo attached! Type your question and tap ➤")
 else:
-    st.session_state.pending_image = None
+    if "last_file" not in st.session_state or st.session_state.get("last_file") != uploaded_file:
+        st.session_state.pending_image = None
+    st.markdown(
+        '<p style="font-size:12px; color:#8A7E76; margin:0.25rem 0 0.5rem 0;">📷 Upload a photo (optional)</p>',
+        unsafe_allow_html=True
+    )
 
-# Text input and send button — always visible
-user_input = st.text_area(
-    "question",
-    placeholder="What project are we working on today?",
-    height=80,
-    key="user_input_box",
-    label_visibility="collapsed"
-)
+st.session_state.last_file = uploaded_file
 
-send_clicked = st.button("🔧 Send to Handy Helper")
+# Input row — text area + send button side by side
+col1, col2 = st.columns([9, 1])
 
-if send_clicked and user_input.strip():
+with col1:
+    user_input = st.text_area(
+        "msg",
+        placeholder="What project are we working on today?",
+        height=80,
+        key="chat_input",
+        label_visibility="collapsed"
+    )
+
+with col2:
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    send = st.button("➤", key="send_btn", help="Send message")
+
+# Process on send
+if send and user_input and user_input.strip():
     prompt = user_input.strip()
     pending = st.session_state.pending_image
 
@@ -255,6 +339,7 @@ if send_clicked and user_input.strip():
 
     st.session_state.messages.append({"role": "user", "content": display_content})
 
+    # Build conversation
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
@@ -264,6 +349,7 @@ if send_clicked and user_input.strip():
             conversation.append({"role": msg["role"], "content": msg["content"]})
     conversation.append({"role": "user", "content": user_content})
 
+    # Get response
     with st.chat_message("assistant"):
         with st.spinner("Handy Helper is thinking..."):
             try:
