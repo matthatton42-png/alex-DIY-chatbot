@@ -10,53 +10,32 @@ st.set_page_config(
     layout="wide"
 )
 
+# Minimal CSS - only hide branding, nothing that could affect chat input
 st.markdown("""
     <style>
         #MainMenu { visibility: hidden; }
         header { visibility: hidden; }
         footer { visibility: hidden; }
-        .stDeployButton { display: none; }
-        .stAppToolbar { display: none; }
         [data-testid="stToolbar"] { display: none; }
         [data-testid="stDecoration"] { display: none; }
-        [data-testid="stStatusWidget"] { display: none; }
-        [data-testid="stHeader"] { display: none; }
         [data-testid="stBottom"] { display: none !important; }
-        [data-testid="stBottomBlockContainer"] { display: none !important; }
-        h1 { display: none; }
         .block-container {
-            padding-top: 0.75rem !important;
-            padding-bottom: 5rem !important;
+            padding-top: 0.5rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-        }
-        .stChatFloatingInputContainer {
-            display: block !important;
-            visibility: visible !important;
-            position: fixed !important;
-            bottom: 1rem !important;
-            left: 0 !important;
-            right: 0 !important;
-            padding: 0 1rem !important;
-            background: transparent !important;
-            z-index: 999 !important;
-        }
-        [data-testid="stChatInput"] textarea {
-            display: block !important;
-            visibility: visible !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize Anthropic client securely
+# Initialize Anthropic client
 try:
     api_key = st.secrets["ANTHROPIC_API_KEY"]
     client = anthropic.Anthropic(api_key=api_key)
 except KeyError:
-    st.error("API key not found. Please check your Streamlit secrets settings.")
+    st.error("API key not found.")
     st.stop()
 except Exception as e:
-    st.error(f"Failed to initialize client: {e}")
+    st.error(f"Failed to initialize: {e}")
     st.stop()
 
 system_prompt = """
@@ -101,15 +80,10 @@ RULES:
 """
 
 def compress_and_encode(file_bytes):
-    """Compress image bytes to under 4MB and return base64 string"""
     MAX = 4 * 1024 * 1024
-
     if len(file_bytes) <= MAX:
         return base64.standard_b64encode(file_bytes).decode("utf-8"), None
-
     img = Image.open(io.BytesIO(file_bytes))
-
-    # Convert to RGB
     if img.mode in ("RGBA", "P", "LA"):
         bg = Image.new("RGB", img.size, (255, 255, 255))
         if img.mode == "RGBA":
@@ -119,16 +93,12 @@ def compress_and_encode(file_bytes):
         img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
-
-    # Try quality reduction
     for quality in [80, 65, 50, 35]:
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=quality, optimize=True)
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-
-    # Try resizing
     for scale in [0.75, 0.5, 0.35, 0.25]:
         resized = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
         buf = io.BytesIO()
@@ -136,36 +106,29 @@ def compress_and_encode(file_bytes):
         data = buf.getvalue()
         if len(data) <= MAX:
             return base64.standard_b64encode(data).decode("utf-8"), "image/jpeg"
-
-    # Last resort
     img.thumbnail((800, 800), Image.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=40)
     return base64.standard_b64encode(buf.getvalue()).decode("utf-8"), "image/jpeg"
 
-def get_media_type(uploaded_file, override_type=None):
-    if override_type:
-        return override_type
-    ft = uploaded_file.type
-    if ft in ["image/jpeg", "image/jpg"]:
+def get_media_type(file_type, override=None):
+    if override:
+        return override
+    if file_type in ["image/jpeg", "image/jpg"]:
         return "image/jpeg"
-    elif ft == "image/png":
+    elif file_type == "image/png":
         return "image/png"
-    elif ft == "image/gif":
+    elif file_type == "image/gif":
         return "image/gif"
-    elif ft == "image/webp":
+    elif file_type == "image/webp":
         return "image/webp"
     return "image/jpeg"
 
-# Initialize session state
+# Session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "image_data" not in st.session_state:
-    st.session_state.image_data = None
-if "image_type" not in st.session_state:
-    st.session_state.image_type = None
-if "image_name" not in st.session_state:
-    st.session_state.image_name = None
+if "pending_image" not in st.session_state:
+    st.session_state.pending_image = None
 
 # Display chat history
 for message in st.session_state.messages:
@@ -177,108 +140,90 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Photo upload
-uploaded_file = st.file_uploader(
-    "📷 Upload a photo (optional)",
-    type=["jpg", "jpeg", "png", "webp"],
-    help="Upload a photo and Handy Helper will analyze it"
-)
-
-# Process uploaded file and store in session state
-if uploaded_file is not None:
-    raw_bytes = uploaded_file.read()
-    encoded, override_type = compress_and_encode(raw_bytes)
-    st.session_state.image_data = encoded
-    st.session_state.image_type = get_media_type(uploaded_file, override_type)
-    st.session_state.image_name = uploaded_file.name
-    st.image(io.BytesIO(raw_bytes), caption="Your photo", width=200)
-    st.success("Photo ready! Type your question below.")
-else:
-    st.session_state.image_data = None
-    st.session_state.image_type = None
-    st.session_state.image_name = None
-
-# Motivational banner
+# Motivational banner — only when no messages
 if not st.session_state.messages:
     st.markdown("""
-        <div style="
-            margin: 1.5rem 0;
-            padding: 1.25rem;
-            background: linear-gradient(135deg, #2C2520 0%, #1A1612 100%);
-            border: 1px solid rgba(232,82,26,0.3);
-            border-left: 4px solid #E8521A;
-            border-radius: 8px;
-            text-align: center;">
-            <div style="font-size: 24px; margin-bottom: 0.5rem;">🔧</div>
-            <div style="font-size: 18px; font-weight: 700; color: #F5F0E8; margin-bottom: 0.5rem;">
+        <div style="margin:1rem 0; padding:1.25rem;
+            background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
+            border:1px solid rgba(232,82,26,0.3);
+            border-left:4px solid #E8521A; border-radius:8px; text-align:center;">
+            <div style="font-size:22px; margin-bottom:0.5rem;">🔧</div>
+            <div style="font-size:17px; font-weight:700; color:#F5F0E8; margin-bottom:0.5rem;">
                 Every Expert Was Once a Beginner
             </div>
-            <div style="font-size: 12px; color: #8A7E76; max-width: 300px; margin: 0 auto 0.75rem;">
+            <div style="font-size:12px; color:#8A7E76; max-width:300px; margin:0 auto 0.75rem;">
                 Ask me anything about your project and let's get it done together.
             </div>
-            <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
-                <span style="font-size: 10px; color: #E8521A; font-family: monospace;">37+ CATEGORIES</span>
-                <span style="font-size: 10px; color: #8A7E76;">•</span>
-                <span style="font-size: 10px; color: #E8521A; font-family: monospace;">PHOTO ANALYSIS</span>
-                <span style="font-size: 10px; color: #8A7E76;">•</span>
-                <span style="font-size: 10px; color: #E8521A; font-family: monospace;">FREE 24/7</span>
+            <div style="display:flex; justify-content:center; gap:0.75rem;">
+                <span style="font-size:10px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
+                <span style="font-size:10px; color:#8A7E76;">•</span>
+                <span style="font-size:10px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
+                <span style="font-size:10px; color:#8A7E76;">•</span>
+                <span style="font-size:10px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-# Chat input — always visible
-user_input = st.chat_input("What project are we working on today?")
+# Photo upload
+uploaded_file = st.file_uploader(
+    "📷 Upload a photo (optional)",
+    type=["jpg", "jpeg", "png", "webp"]
+)
 
-if user_input:
-    # Build message content
-    if st.session_state.image_data:
+if uploaded_file is not None:
+    raw_bytes = uploaded_file.read()
+    encoded, override = compress_and_encode(raw_bytes)
+    media_type = get_media_type(uploaded_file.type, override)
+    st.session_state.pending_image = {
+        "data": encoded,
+        "media_type": media_type,
+        "name": uploaded_file.name,
+        "bytes": raw_bytes
+    }
+    st.image(io.BytesIO(raw_bytes), caption="Photo ready!", width=180)
+    st.success("✓ Photo ready! Type your question below.")
+else:
+    st.session_state.pending_image = None
+
+# Chat input
+prompt = st.chat_input("What project are we working on today?")
+
+if prompt:
+    pending = st.session_state.pending_image
+
+    if pending:
         user_content = [
             {
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": st.session_state.image_type,
-                    "data": st.session_state.image_data
+                    "media_type": pending["media_type"],
+                    "data": pending["data"]
                 }
             },
-            {
-                "type": "text",
-                "text": user_input
-            }
+            {"type": "text", "text": prompt}
         ]
-        display_content = [
-            {"type": "text", "text": f"[Photo: {st.session_state.image_name}] {user_input}"}
-        ]
+        display_content = [{"type": "text", "text": f"[Photo attached] {prompt}"}]
     else:
-        user_content = user_input
-        display_content = user_input
+        user_content = prompt
+        display_content = prompt
 
-    # Show user message
     with st.chat_message("user"):
-        st.markdown(user_input)
+        st.markdown(prompt)
 
-    st.session_state.messages.append({
-        "role": "user",
-        "content": display_content
-    })
+    st.session_state.messages.append({"role": "user", "content": display_content})
 
-    # Build conversation history
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
-            text_only = " ".join(
-                block["text"] for block in msg["content"]
-                if isinstance(block, dict) and block.get("type") == "text"
-            )
-            conversation.append({"role": msg["role"], "content": text_only})
+            text = " ".join(b["text"] for b in msg["content"] if isinstance(b, dict) and b.get("type") == "text")
+            conversation.append({"role": msg["role"], "content": text})
         else:
             conversation.append({"role": msg["role"], "content": msg["content"]})
-
     conversation.append({"role": "user", "content": user_content})
 
-    # Get response
     with st.chat_message("assistant"):
-        with st.spinner("Handy Helper is analyzing..."):
+        with st.spinner("Handy Helper is thinking..."):
             try:
                 while True:
                     response = client.messages.create(
@@ -288,12 +233,8 @@ if user_input:
                         tools=[{"type": "web_search_20250305", "name": "web_search"}],
                         messages=conversation
                     )
-
                     if response.stop_reason == "tool_use":
-                        conversation.append({
-                            "role": "assistant",
-                            "content": response.content
-                        })
+                        conversation.append({"role": "assistant", "content": response.content})
                         tool_results = []
                         for block in response.content:
                             if block.type == "tool_use":
@@ -302,27 +243,13 @@ if user_input:
                                     "tool_use_id": block.id,
                                     "content": block.input.get("query", "")
                                 })
-                        conversation.append({
-                            "role": "user",
-                            "content": tool_results
-                        })
+                        conversation.append({"role": "user", "content": tool_results})
                     else:
-                        reply = ""
-                        for block in response.content:
-                            if hasattr(block, "text"):
-                                reply += block.text
+                        reply = "".join(block.text for block in response.content if hasattr(block, "text"))
                         break
-
             except Exception as e:
                 reply = f"Something went wrong: {e}"
 
         st.markdown(reply)
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": reply
-        })
-
-    # Clear image after sending
-    st.session_state.image_data = None
-    st.session_state.image_type = None
-    st.session_state.image_name = None
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+    st.session_state.pending_image = None
