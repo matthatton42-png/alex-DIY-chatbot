@@ -19,80 +19,49 @@ st.markdown("""
         [data-testid="stDecoration"] { display: none; }
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
-
-        /* Full height layout */
-        .stApp { height: 100vh; overflow: hidden; }
         .block-container {
-            padding: 0.5rem 1rem 0.5rem 1rem !important;
-            height: 100vh !important;
-            display: flex !important;
-            flex-direction: column !important;
+            padding: 1rem !important;
             max-width: 100% !important;
-            overflow: hidden !important;
-        }
-
-        /* Push upload and input to bottom */
-        .main-spacer { flex: 1; }
-
-        /* File uploader */
-        [data-testid="stFileUploader"] {
-            margin-bottom: 0.5rem !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
-        [data-testid="stFileUploaderDropzone"] {
-            padding: 0.6rem 1rem !important;
-            background: #2C2520 !important;
-            border: 1px solid rgba(232,82,26,0.25) !important;
-            border-radius: 10px !important;
+        .hh-form {
+            display: flex;
+            align-items: flex-end;
+            background: #2C2520;
+            border: 1px solid rgba(232,82,26,0.3);
+            border-radius: 12px;
+            padding: 8px 8px 8px 12px;
+            gap: 8px;
+            margin-top: 0.5rem;
         }
-
-        /* Text area */
-        .stTextArea { margin: 0 !important; }
-        .stTextArea label { display: none !important; }
-        .stTextArea textarea {
-            background: #2C2520 !important;
-            color: #F5F0E8 !important;
-            border: 1px solid rgba(232,82,26,0.3) !important;
-            border-radius: 12px !important;
-            font-size: 14px !important;
-            resize: none !important;
-            padding: 12px 16px !important;
-            min-height: 70px !important;
-        }
-        .stTextArea textarea:focus {
-            border-color: #E8521A !important;
-            box-shadow: none !important;
-        }
-        .stTextArea textarea::placeholder { color: #8A7E76 !important; }
-
-        /* Send button */
-        .stButton { margin: 0 !important; }
-        .stButton > button {
-            background: #E8521A !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 10px !important;
-            font-size: 20px !important;
-            height: 70px !important;
-            width: 100% !important;
-            padding: 0 !important;
-            margin-top: 0 !important;
-        }
-        .stButton > button:hover { background: #C43E0A !important; }
-
-        /* Column alignment */
-        div[data-testid="stHorizontalBlock"] {
-            align-items: flex-end !important;
-            gap: 8px !important;
-            margin-top: 0.4rem !important;
-        }
-
-        /* Chat messages scroll area */
-        .chat-scroll {
-            overflow-y: auto;
+        .hh-form:focus-within { border-color: #E8521A; }
+        .hh-textarea {
             flex: 1;
-            padding-bottom: 0.5rem;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #F5F0E8;
+            font-size: 14px;
+            font-family: sans-serif;
+            resize: none;
+            line-height: 1.5;
+            min-height: 52px;
+            max-height: 120px;
         }
+        .hh-textarea::placeholder { color: #8A7E76; }
+        .hh-send {
+            background: #E8521A;
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .hh-send:hover { background: #C43E0A; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -208,34 +177,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
+if "submitted_text" not in st.session_state:
+    st.session_state.submitted_text = ""
 
-# ── TOP: Motivational banner (only when no chat history) ──
-if not st.session_state.messages:
-    st.markdown("""
-        <div style="padding:1rem;
-            background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
-            border:1px solid rgba(232,82,26,0.3);
-            border-left:4px solid #E8521A;
-            border-radius:8px; text-align:center;
-            margin-bottom:0.5rem;">
-            <div style="font-size:20px; margin-bottom:0.3rem;">🔧</div>
-            <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.3rem;">
-                Every Expert Was Once a Beginner
-            </div>
-            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.5rem;">
-                Ask me anything about your project and let's get it done together.
-            </div>
-            <div style="display:flex; justify-content:center; gap:0.6rem;">
-                <span style="font-size:9px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
-                <span style="font-size:9px; color:#8A7E76;">•</span>
-                <span style="font-size:9px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
-                <span style="font-size:9px; color:#8A7E76;">•</span>
-                <span style="font-size:9px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# ── MIDDLE: Chat history ──
+# Chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         if isinstance(message["content"], list):
@@ -245,10 +190,32 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Flexible spacer — pushes upload + input to bottom
-st.markdown('<div class="main-spacer"></div>', unsafe_allow_html=True)
+# Motivational banner — only when no messages
+if not st.session_state.messages:
+    st.markdown("""
+        <div style="padding:1.25rem; margin:0.5rem 0;
+            background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
+            border:1px solid rgba(232,82,26,0.3);
+            border-left:4px solid #E8521A;
+            border-radius:8px; text-align:center;">
+            <div style="font-size:22px; margin-bottom:0.4rem;">🔧</div>
+            <div style="font-size:16px; font-weight:700; color:#F5F0E8; margin-bottom:0.4rem;">
+                Every Expert Was Once a Beginner
+            </div>
+            <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.6rem;">
+                Ask me anything about your project and let's get it done together.
+            </div>
+            <div style="display:flex; justify-content:center; gap:0.75rem;">
+                <span style="font-size:9px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
+                <span style="font-size:9px; color:#8A7E76;">•</span>
+                <span style="font-size:9px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
+                <span style="font-size:9px; color:#8A7E76;">•</span>
+                <span style="font-size:9px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# ── BOTTOM: Photo upload ──
+# Photo upload
 uploaded_file = st.file_uploader(
     "photo",
     type=["jpg", "jpeg", "png", "webp"],
@@ -259,7 +226,6 @@ if uploaded_file is not None:
     raw_bytes = uploaded_file.read()
     encoded, override = compress_and_encode(raw_bytes)
     media_type = get_media_type(uploaded_file.type, override)
-    # Store in session state immediately so it survives rerun
     st.session_state.pending_image = {
         "data": encoded,
         "media_type": media_type,
@@ -269,33 +235,62 @@ if uploaded_file is not None:
     st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=150)
     st.success("✓ Photo attached! Type your question and tap ➤")
 elif st.session_state.pending_image is None:
-    # Nothing uploaded and nothing stored — show placeholder
     st.markdown(
-        '<p style="font-size:11px; color:#8A7E76; margin:0.1rem 0 0.25rem 0;">📷 Upload a photo (optional)</p>',
+        '<p style="font-size:11px; color:#8A7E76; margin:0.25rem 0;">📷 Upload a photo (optional)</p>',
         unsafe_allow_html=True
     )
 else:
-    # Image stored in session — show it is still attached after rerun
     st.success("✓ Photo still attached! Type your question and tap ➤")
 
-# ── BOTTOM: Text input + send button ──
-col1, col2 = st.columns([11, 1])
+# Chat input box with send button INSIDE using HTML — no URL navigation
+st.markdown("""
+    <div class="hh-form">
+        <textarea id="hh-input" class="hh-textarea"
+            placeholder="What project are we working on today?"
+            rows="2"></textarea>
+        <button class="hh-send" onclick="sendMessage()">&#10148;</button>
+    </div>
 
-with col1:
-    user_input = st.text_area(
-        "msg",
-        placeholder="What project are we working on today?",
-        height=70,
-        key="chat_input",
-        label_visibility="collapsed"
-    )
+    <script>
+    function sendMessage() {
+        var text = document.getElementById('hh-input').value.trim();
+        if (!text) return;
+        // Use Streamlit's internal setComponentValue via postMessage
+        window.parent.postMessage({
+            type: 'streamlit:setComponentValue',
+            value: text
+        }, '*');
+        // Also store in sessionStorage as fallback
+        sessionStorage.setItem('hh_pending', text);
+        document.getElementById('hh-input').value = '';
+        // Trigger Streamlit rerun by updating a hidden input
+        var ev = new CustomEvent('hh_submit', { detail: text });
+        window.dispatchEvent(ev);
+    }
 
-with col2:
-    send = st.button("➤", key="send_btn")
+    document.getElementById('hh-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    </script>
+""", unsafe_allow_html=True)
 
-# ── PROCESS: Send message ──
-if send and user_input and user_input.strip():
-    prompt = user_input.strip()
+# Hidden text input that Streamlit can actually read
+submitted_via_form = st.text_input(
+    "hidden",
+    key="hidden_submit",
+    label_visibility="collapsed",
+    placeholder=""
+)
+
+# Process submitted message
+prompt_to_process = submitted_via_form.strip() if submitted_via_form else ""
+
+if prompt_to_process and prompt_to_process != st.session_state.submitted_text:
+    st.session_state.submitted_text = prompt_to_process
+    prompt = prompt_to_process
     pending = st.session_state.pending_image
 
     if pending:
@@ -320,14 +315,10 @@ if send and user_input and user_input.strip():
 
     st.session_state.messages.append({"role": "user", "content": display_content})
 
-    # Build conversation history
     conversation = []
     for msg in st.session_state.messages[:-1]:
         if isinstance(msg["content"], list):
-            text = " ".join(
-                b["text"] for b in msg["content"]
-                if isinstance(b, dict) and b.get("type") == "text"
-            )
+            text = " ".join(b["text"] for b in msg["content"] if isinstance(b, dict) and b.get("type") == "text")
             conversation.append({"role": msg["role"], "content": text})
         else:
             conversation.append({"role": msg["role"], "content": msg["content"]})
@@ -356,10 +347,7 @@ if send and user_input and user_input.strip():
                                 })
                         conversation.append({"role": "user", "content": tool_results})
                     else:
-                        reply = "".join(
-                            block.text for block in response.content
-                            if hasattr(block, "text")
-                        )
+                        reply = "".join(block.text for block in response.content if hasattr(block, "text"))
                         break
             except Exception as e:
                 reply = f"Something went wrong: {e}"
@@ -367,6 +355,5 @@ if send and user_input and user_input.strip():
         st.markdown(reply)
         st.session_state.messages.append({"role": "assistant", "content": reply})
 
-    # Clear image ONLY after successful send
     st.session_state.pending_image = None
     st.rerun()
