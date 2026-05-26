@@ -1,6 +1,8 @@
 import anthropic
 import streamlit as st
 import base64
+import io
+from PIL import Image
 
 st.set_page_config(
     page_title="Handy Helper - DIY Services Assistant",
@@ -19,6 +21,9 @@ st.markdown("""
         [data-testid="stDecoration"] { display: none; }
         [data-testid="stStatusWidget"] { display: none; }
         [data-testid="stHeader"] { display: none; }
+        [data-testid="stCaption"] { display: none; }
+        [data-testid="stBottom"] { display: none !important; }
+        [data-testid="stBottomBlockContainer"] { display: none !important; }
         h1 { display: none; }
         .block-container {
             padding-top: 0.75rem !important;
@@ -83,41 +88,59 @@ RULES:
 - Keep responses clear and practical
 """
 
-def encode_image(uploaded_file):
-    """Convert uploaded file to base64 with compression if needed"""
-    from PIL import Image
-    import io
-
+def compress_and_encode_image(uploaded_file):
+    """Read, compress if needed, and encode image to base64"""
+    # Read the raw bytes
     img_bytes = uploaded_file.read()
+    MAX_SIZE = 4 * 1024 * 1024  # 4MB to stay safely under Claude's 5MB limit
 
-    # If under 4MB send as is
-    if len(img_bytes) < 4 * 1024 * 1024:
-        return base64.standard_b64encode(img_bytes).decode("utf-8")
+    # If already small enough return as is
+    if len(img_bytes) <= MAX_SIZE:
+        return base64.standard_b64encode(img_bytes).decode("utf-8"), uploaded_file.type
 
-    # Otherwise compress until under 4MB
+    # Need to compress — open with Pillow
     img = Image.open(io.BytesIO(img_bytes))
 
-    # Convert RGBA to RGB if needed
-    if img.mode in ("RGBA", "P"):
+    # Convert transparency modes to RGB for JPEG compatibility
+    if img.mode in ("RGBA", "P", "LA"):
+        background = Image.new("RGB", img.size, (255, 255, 255))
+        if img.mode == "RGBA":
+            background.paste(img, mask=img.split()[3])
+        else:
+            background.paste(img)
+        img = background
+    elif img.mode != "RGB":
         img = img.convert("RGB")
 
-    quality = 85
-    while quality > 20:
+    # Try progressively lower quality first
+    for quality in [80, 65, 50, 35]:
         buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=quality)
+        img.save(buffer, format="JPEG", quality=quality, optimize=True)
         compressed = buffer.getvalue()
-        if len(compressed) < 4 * 1024 * 1024:
-            return base64.standard_b64encode(compressed).decode("utf-8")
-        quality -= 15
+        if len(compressed) <= MAX_SIZE:
+            return base64.standard_b64encode(compressed).decode("utf-8"), "image/jpeg"
 
-    # If still too large resize the image
-    max_size = (1920, 1920)
-    img.thumbnail(max_size, Image.LANCZOS)
+    # If quality reduction not enough also resize
+    scale = 0.75
+    while scale >= 0.25:
+        new_w = int(img.width * scale)
+        new_h = int(img.height * scale)
+        resized = img.resize((new_w, new_h), Image.LANCZOS)
+        buffer = io.BytesIO()
+        resized.save(buffer, format="JPEG", quality=50, optimize=True)
+        compressed = buffer.getvalue()
+        if len(compressed) <= MAX_SIZE:
+            return base64.standard_b64encode(compressed).decode("utf-8"), "image/jpeg"
+        scale -= 0.25
+
+    # Last resort — very small thumbnail
+    img.thumbnail((800, 800), Image.LANCZOS)
     buffer = io.BytesIO()
-    img.save(buffer, format="JPEG", quality=75)
-    return base64.standard_b64encode(buffer.getvalue()).decode("utf-8")
+    img.save(buffer, format="JPEG", quality=40, optimize=True)
+    return base64.standard_b64encode(buffer.getvalue()).decode("utf-8"), "image/jpeg"
 
 def get_image_media_type(uploaded_file):
+    """Get the media type of the uploaded file"""
     file_type = uploaded_file.type
     if file_type in ["image/jpeg", "image/jpg"]:
         return "image/jpeg"
@@ -156,7 +179,7 @@ if uploaded_file:
     st.image(uploaded_file, caption="Your photo", width=200)
     st.success("Photo ready! Ask your question below.")
 
-# Motivational banner
+# Motivational banner — only shows before first message
 if not st.session_state.messages:
     st.markdown("""
         <div style="
@@ -167,9 +190,7 @@ if not st.session_state.messages:
             border-left: 4px solid #E8521A;
             border-radius: 8px;
             text-align: center;">
-            <div style="
-                font-size: 28px;
-                margin-bottom: 0.75rem;">🔧</div>
+            <div style="font-size: 28px; margin-bottom: 0.75rem;">🔧</div>
             <div style="
                 font-family: sans-serif;
                 font-size: 20px;
@@ -188,11 +209,7 @@ if not st.session_state.messages:
                 margin: 0 auto 1rem;">
                 You already have what it takes. Ask me anything about your project and let's get it done together.
             </div>
-            <div style="
-                display: flex;
-                justify-content: center;
-                gap: 1rem;
-                flex-wrap: wrap;">
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
                 <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">37+ CATEGORIES</span>
                 <span style="font-size: 11px; color: #8A7E76;">•</span>
                 <span style="font-size: 11px; color: #E8521A; font-family: monospace; letter-spacing: 1px;">PHOTO ANALYSIS</span>
@@ -204,10 +221,12 @@ if not st.session_state.messages:
 
 # Chat input
 if user_input := st.chat_input("What project are we working on today?"):
+
     if uploaded_file:
+        # Reset file pointer and compress
         uploaded_file.seek(0)
-        image_data = encode_image(uploaded_file)
-        media_type = get_image_media_type(uploaded_file)
+        image_data, media_type = compress_and_encode_image(uploaded_file)
+
         user_content = [
             {
                 "type": "image",
@@ -232,6 +251,7 @@ if user_input := st.chat_input("What project are we working on today?"):
 
     with st.chat_message("user"):
         if uploaded_file:
+            uploaded_file.seek(0)
             st.image(uploaded_file, caption="Your photo", width=200)
         st.markdown(user_input)
 
