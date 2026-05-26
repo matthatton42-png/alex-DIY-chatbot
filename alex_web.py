@@ -24,6 +24,17 @@ st.markdown("""
             max-width: 100% !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
+
+        /* Center the whole page content vertically */
+        .center-wrap {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 80vh;
+            gap: 0.75rem;
+        }
+
+        /* Chat input with button inside */
         .hh-form {
             display: flex;
             align-items: flex-end;
@@ -32,7 +43,6 @@ st.markdown("""
             border-radius: 12px;
             padding: 8px 8px 8px 12px;
             gap: 8px;
-            margin-top: 0.5rem;
         }
         .hh-form:focus-within { border-color: #E8521A; }
         .hh-textarea {
@@ -62,6 +72,15 @@ st.markdown("""
             flex-shrink: 0;
         }
         .hh-send:hover { background: #C43E0A; }
+
+        /* Hide the st.text_input used for message passing */
+        [data-testid="stTextInput"] {
+            position: absolute !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -190,10 +209,13 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# Motivational banner — only when no messages
+# Opening layout — centered when no messages
+st.markdown('<div class="center-wrap">', unsafe_allow_html=True)
+
+# Motivational banner
 if not st.session_state.messages:
     st.markdown("""
-        <div style="padding:1.25rem; margin:0.5rem 0;
+        <div style="padding:1.25rem;
             background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
             border:1px solid rgba(232,82,26,0.3);
             border-left:4px solid #E8521A;
@@ -236,13 +258,13 @@ if uploaded_file is not None:
     st.success("✓ Photo attached! Type your question and tap ➤")
 elif st.session_state.pending_image is None:
     st.markdown(
-        '<p style="font-size:11px; color:#8A7E76; margin:0.25rem 0;">📷 Upload a photo (optional)</p>',
+        '<p style="font-size:11px; color:#8A7E76; margin:0.1rem 0 0;">📷 Upload a photo (optional)</p>',
         unsafe_allow_html=True
     )
 else:
     st.success("✓ Photo still attached! Type your question and tap ➤")
 
-# Chat input box with send button INSIDE using HTML — no URL navigation
+# Custom HTML chat input with ➤ inside
 st.markdown("""
     <div class="hh-form">
         <textarea id="hh-input" class="hh-textarea"
@@ -250,24 +272,18 @@ st.markdown("""
             rows="2"></textarea>
         <button class="hh-send" onclick="sendMessage()">&#10148;</button>
     </div>
-
     <script>
     function sendMessage() {
         var text = document.getElementById('hh-input').value.trim();
         if (!text) return;
-        // Use Streamlit's internal setComponentValue via postMessage
-        window.parent.postMessage({
-            type: 'streamlit:setComponentValue',
-            value: text
-        }, '*');
-        // Also store in sessionStorage as fallback
-        sessionStorage.setItem('hh_pending', text);
-        document.getElementById('hh-input').value = '';
-        // Trigger Streamlit rerun by updating a hidden input
-        var ev = new CustomEvent('hh_submit', { detail: text });
-        window.dispatchEvent(ev);
+        var hiddenInput = window.parent.document.querySelector('[data-testid="stTextInput"] input');
+        if (hiddenInput) {
+            var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            nativeInputValueSetter.call(hiddenInput, text);
+            hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+            document.getElementById('hh-input').value = '';
+        }
     }
-
     document.getElementById('hh-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -277,20 +293,15 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Hidden text input that Streamlit can actually read
-submitted_via_form = st.text_input(
-    "hidden",
-    key="hidden_submit",
-    label_visibility="collapsed",
-    placeholder=""
-)
+# Invisible Streamlit input that receives the message
+user_msg = st.text_input("h", key="hidden_msg", label_visibility="collapsed")
 
-# Process submitted message
-prompt_to_process = submitted_via_form.strip() if submitted_via_form else ""
+st.markdown('</div>', unsafe_allow_html=True)
 
-if prompt_to_process and prompt_to_process != st.session_state.submitted_text:
-    st.session_state.submitted_text = prompt_to_process
-    prompt = prompt_to_process
+# Process message
+if user_msg and user_msg.strip() and user_msg.strip() != st.session_state.submitted_text:
+    st.session_state.submitted_text = user_msg.strip()
+    prompt = user_msg.strip()
     pending = st.session_state.pending_image
 
     if pending:
