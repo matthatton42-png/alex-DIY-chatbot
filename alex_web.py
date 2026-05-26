@@ -84,7 +84,38 @@ RULES:
 """
 
 def encode_image(uploaded_file):
-    return base64.standard_b64encode(uploaded_file.read()).decode("utf-8")
+    """Convert uploaded file to base64 with compression if needed"""
+    from PIL import Image
+    import io
+
+    img_bytes = uploaded_file.read()
+
+    # If under 4MB send as is
+    if len(img_bytes) < 4 * 1024 * 1024:
+        return base64.standard_b64encode(img_bytes).decode("utf-8")
+
+    # Otherwise compress until under 4MB
+    img = Image.open(io.BytesIO(img_bytes))
+
+    # Convert RGBA to RGB if needed
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    quality = 85
+    while quality > 20:
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=quality)
+        compressed = buffer.getvalue()
+        if len(compressed) < 4 * 1024 * 1024:
+            return base64.standard_b64encode(compressed).decode("utf-8")
+        quality -= 15
+
+    # If still too large resize the image
+    max_size = (1920, 1920)
+    img.thumbnail(max_size, Image.LANCZOS)
+    buffer = io.BytesIO()
+    img.save(buffer, format="JPEG", quality=75)
+    return base64.standard_b64encode(buffer.getvalue()).decode("utf-8")
 
 def get_image_media_type(uploaded_file):
     file_type = uploaded_file.type
