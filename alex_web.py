@@ -24,51 +24,49 @@ st.markdown("""
             max-width: 100% !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
-        [data-testid="stTextInput"] {
-            position: absolute !important;
-            opacity: 0 !important;
-            height: 0 !important;
-            pointer-events: none !important;
-            overflow: hidden !important;
+
+        /* Text area styling */
+        .stTextArea label { display: none !important; }
+        .stTextArea textarea {
+            background: #2C2520 !important;
+            color: #F5F0E8 !important;
+            border: 1px solid rgba(232,82,26,0.3) !important;
+            border-radius: 12px !important;
+            font-size: 14px !important;
+            resize: none !important;
+            padding: 12px 50px 12px 16px !important;
+            min-height: 70px !important;
+            font-family: sans-serif !important;
         }
-        .hh-form {
-            display: flex;
-            align-items: flex-end;
-            background: #2C2520;
-            border: 1px solid rgba(232,82,26,0.3);
-            border-radius: 12px;
-            padding: 8px 8px 8px 12px;
-            gap: 8px;
+        .stTextArea textarea:focus {
+            border-color: #E8521A !important;
+            box-shadow: none !important;
+        }
+        .stTextArea textarea::placeholder { color: #8A7E76 !important; }
+
+        /* Position send button over the text area */
+        .input-wrap {
+            position: relative;
             margin-top: 0.75rem;
         }
-        .hh-form:focus-within { border-color: #E8521A; }
-        .hh-textarea {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #F5F0E8;
-            font-size: 14px;
-            font-family: sans-serif;
-            resize: none;
-            line-height: 1.5;
-            min-height: 52px;
-            max-height: 120px;
+        .input-wrap .stTextArea { margin: 0 !important; }
+
+        /* Send button absolutely positioned inside the text area */
+        .stButton { position: absolute !important; right: 8px !important; bottom: 8px !important; margin: 0 !important; z-index: 10 !important; }
+        .stButton > button {
+            background: #E8521A !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 18px !important;
+            padding: 0 !important;
+            min-height: unset !important;
+            line-height: 1 !important;
         }
-        .hh-textarea::placeholder { color: #8A7E76; }
-        .hh-send {
-            background: #E8521A;
-            border: none;
-            border-radius: 8px;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            cursor: pointer;
-            color: white;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-        .hh-send:hover { background: #C43E0A; }
+        .stButton > button:hover { background: #C43E0A !important; }
+        .stButton > button:focus { box-shadow: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -184,8 +182,6 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
-if "submitted_text" not in st.session_state:
-    st.session_state.submitted_text = ""
 
 # ── 1. Chat history ──
 for message in st.session_state.messages:
@@ -197,7 +193,7 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
-# ── 2. Motivational banner (only when no messages) ──
+# ── 2. Motivational banner ──
 if not st.session_state.messages:
     st.markdown("""
         <div style="padding:1.25rem; margin-bottom:0.75rem;
@@ -249,42 +245,24 @@ elif st.session_state.pending_image is None:
 else:
     st.success("✓ Photo still attached! Type your question and tap ➤")
 
-# ── 4. Chat input with ➤ inside ──
-st.markdown("""
-    <div class="hh-form">
-        <textarea id="hh-input" class="hh-textarea"
-            placeholder="What project are we working on today?"
-            rows="2"></textarea>
-        <button class="hh-send" onclick="sendMessage()">&#10148;</button>
-    </div>
-    <script>
-    function sendMessage() {
-        var text = document.getElementById('hh-input').value.trim();
-        if (!text) return;
-        var hiddenInput = window.parent.document.querySelector('[data-testid="stTextInput"] input');
-        if (hiddenInput) {
-            var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            setter.call(hiddenInput, text);
-            hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
-            document.getElementById('hh-input').value = '';
-        }
-    }
-    document.getElementById('hh-input').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-    </script>
-""", unsafe_allow_html=True)
+# ── 4. Input box with ➤ button overlaid using CSS positioning ──
+st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
 
-# Invisible Streamlit input
-user_msg = st.text_input("h", key="hidden_msg", label_visibility="collapsed")
+user_input = st.text_area(
+    "question",
+    placeholder="What project are we working on today?",
+    height=70,
+    key="chat_input",
+    label_visibility="collapsed"
+)
+
+send = st.button("➤", key="send_btn")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ── 5. Process message ──
-if user_msg and user_msg.strip() and user_msg.strip() != st.session_state.submitted_text:
-    st.session_state.submitted_text = user_msg.strip()
-    prompt = user_msg.strip()
+if send and user_input and user_input.strip():
+    prompt = user_input.strip()
     pending = st.session_state.pending_image
 
     if pending:
