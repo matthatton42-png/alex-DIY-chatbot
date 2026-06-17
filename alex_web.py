@@ -515,6 +515,20 @@ with tab1:
                     <span style="font-size:9px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
                 </div>
             </div>
+            <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                <div style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
+                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;">
+                    <div style="font-size:14px; margin-bottom:2px;">💰</div>
+                    <div style="font-size:10px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Pay With Confidence</div>
+                    <div style="font-size:9px; color:#8A7E76;">Verify work before you pay</div>
+                </div>
+                <div style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
+                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;">
+                    <div style="font-size:14px; margin-bottom:2px;">🛡️</div>
+                    <div style="font-size:10px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Completed With Pride</div>
+                    <div style="font-size:9px; color:#8A7E76;">Contractors — document your work</div>
+                </div>
+            </div>
         """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
