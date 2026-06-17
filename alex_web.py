@@ -51,18 +51,20 @@ st.markdown("""
         }
         .stButton > button:focus { box-shadow: none !important; }
 
-        /* Force columns side by side always */
-        div[data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap !important;
-            gap: 0.4rem !important;
-            margin: 0 !important;
+        /* Hide the nav trigger buttons completely */
+        .hidden-nav .stButton > button {
+            height: 0 !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
             padding: 0 !important;
+            border: none !important;
+            margin: 0 !important;
+            opacity: 0 !important;
         }
-        div[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"] {
-            min-width: 0 !important;
-            flex: 1 !important;
-            padding: 0 !important;
+        .hidden-nav div[data-testid="stHorizontalBlock"] {
+            gap: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
         }
 
         /* ── SEND BUTTON: only inside input-wrap ── */
@@ -502,15 +504,61 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
+        # HTML nav cards — perfectly aligned, no Streamlit column constraints
+        st.markdown("""
+            <div style="display:flex; gap:0.4rem; margin:0 0 0.5rem 0;">
+                <div onclick="navClick('PWC_NAV')" style="
+                    flex:1; background:#2C2520;
+                    border:1px solid rgba(232,82,26,0.2); border-radius:10px;
+                    padding:0.5rem; text-align:center; cursor:pointer;
+                    transition:border-color 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(232,82,26,0.5)'"
+                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
+                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.5)'"
+                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
+                    <div style="font-size:14px; margin-bottom:2px;">💰</div>
+                    <div style="font-size:11px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Pay With Confidence</div>
+                    <div style="font-size:9px; color:#8A7E76;">Verify work before you pay</div>
+                </div>
+                <div onclick="navClick('CWP_NAV')" style="
+                    flex:1; background:#2C2520;
+                    border:1px solid rgba(232,82,26,0.2); border-radius:10px;
+                    padding:0.5rem; text-align:center; cursor:pointer;
+                    transition:border-color 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(232,82,26,0.5)'"
+                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
+                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.5)'"
+                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
+                    <div style="font-size:14px; margin-bottom:2px;">🛡️</div>
+                    <div style="font-size:11px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Completed With Pride</div>
+                    <div style="font-size:9px; color:#8A7E76;">Contractors — document your work</div>
+                </div>
+            </div>
+            <script>
+            function navClick(label) {
+                var btns = document.querySelectorAll('button');
+                for (var i = 0; i < btns.length; i++) {
+                    if (btns[i].textContent.trim() === label) {
+                        btns[i].click();
+                        return;
+                    }
+                }
+            }
+            </script>
+        """, unsafe_allow_html=True)
+
+        # Hidden Streamlit buttons triggered by HTML cards above
+        st.markdown('<div class="hidden-nav">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("💰  Pay With Confidence\nVerify work before you pay", key="nav_verify"):
+            if st.button("PWC_NAV", key="nav_verify"):
                 st.session_state.current_section = "verify"
                 st.rerun()
         with col2:
-            if st.button("🛡️  Completed With Pride\nContractors — document your work", key="nav_doc"):
+            if st.button("CWP_NAV", key="nav_doc"):
                 st.session_state.current_section = "document"
                 st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
         "photo", type=["jpg", "jpeg", "png", "webp"],
