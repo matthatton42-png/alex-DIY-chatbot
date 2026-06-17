@@ -29,29 +29,68 @@ st.markdown("""
         }
         [data-testid="stFileUploader"] label { display: none !important; }
 
-        /* Tab styling */
-        .stTabs [data-baseweb="tab-list"] {
-            background: #2C2520;
-            border-radius: 10px;
-            padding: 4px;
-            gap: 4px;
-            margin-bottom: 1rem;
-        }
-        .stTabs [data-baseweb="tab"] {
-            color: #8A7E76 !important;
-            border-radius: 8px !important;
+        /* ── DEFAULT: all buttons reset ── */
+        .stButton { position: relative !important; margin: 0 !important; z-index: auto !important; }
+        .stButton > button {
+            background: #2C2520 !important;
+            color: #F5F0E8 !important;
+            border: 1px solid rgba(232,82,26,0.2) !important;
+            border-radius: 10px !important;
+            width: 100% !important;
+            min-height: 72px !important;
             font-size: 13px !important;
-            font-weight: 500 !important;
-            padding: 8px 12px !important;
+            font-weight: 600 !important;
+            padding: 0.5rem !important;
+            line-height: 1.4 !important;
+            transition: border-color 0.2s !important;
         }
-        .stTabs [aria-selected="true"] {
+        .stButton > button:hover {
+            background: #3D3530 !important;
+            border-color: rgba(232,82,26,0.5) !important;
+        }
+        .stButton > button:focus { box-shadow: none !important; }
+
+        /* ── SEND BUTTON: only inside input-wrap ── */
+        .input-wrap { position: relative; margin-top: 0.75rem; }
+        .input-wrap .stTextArea { margin: 0 !important; }
+        .input-wrap .stButton {
+            position: absolute !important;
+            right: 8px !important;
+            bottom: 8px !important;
+            z-index: 10 !important;
+        }
+        .input-wrap .stButton > button {
             background: #E8521A !important;
+            border: none !important;
+            border-radius: 8px !important;
+            width: 36px !important;
+            height: 36px !important;
+            min-height: unset !important;
+            font-size: 18px !important;
+            font-weight: 400 !important;
+            padding: 0 !important;
             color: white !important;
         }
-        .stTabs [data-baseweb="tab-border"] { display: none !important; }
-        .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+        .input-wrap .stButton > button:hover { background: #C43E0A !important; }
 
-        /* Text area styling */
+        /* ── BACK BUTTON ── */
+        .back-btn .stButton > button {
+            background: transparent !important;
+            border: 1px solid rgba(232,82,26,0.25) !important;
+            border-radius: 8px !important;
+            min-height: 36px !important;
+            font-size: 12px !important;
+            color: #8A7E76 !important;
+            font-weight: 400 !important;
+            padding: 4px 12px !important;
+            width: auto !important;
+        }
+        .back-btn .stButton > button:hover {
+            border-color: rgba(232,82,26,0.5) !important;
+            color: #F5F0E8 !important;
+        }
+
+        /* ── TEXT AREA ── */
         .stTextArea label { display: none !important; }
         .stTextArea textarea {
             background: #2C2520 !important;
@@ -70,47 +109,7 @@ st.markdown("""
         }
         .stTextArea textarea::placeholder { color: #8A7E76 !important; }
 
-        /* Send button positioning */
-        .input-wrap { position: relative; margin-top: 0.75rem; }
-        .input-wrap .stTextArea { margin: 0 !important; }
-        .stButton { position: absolute !important; right: 8px !important; bottom: 8px !important; margin: 0 !important; z-index: 10 !important; }
-        .stButton > button {
-            background: #E8521A !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            width: 36px !important;
-            height: 36px !important;
-            font-size: 18px !important;
-            padding: 0 !important;
-            min-height: unset !important;
-            line-height: 1 !important;
-        }
-        .stButton > button:hover { background: #C43E0A !important; }
-        .stButton > button:focus { box-shadow: none !important; }
-
-        /* Form and card styling */
-        .verify-card {
-            background: #2C2520;
-            border: 1px solid rgba(232,82,26,0.25);
-            border-radius: 10px;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-        }
-        .result-card {
-            background: #1A1612;
-            border: 1px solid rgba(232,82,26,0.2);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 0.75rem;
-        }
-        .photo-entry {
-            background: #2C2520;
-            border: 1px solid rgba(232,82,26,0.2);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-        }
+        /* ── FORM/CARD ELEMENTS ── */
         .stSelectbox label { color: #8A7E76 !important; font-size: 13px !important; }
         .stTextInput label { color: #8A7E76 !important; font-size: 13px !important; }
         div[data-testid="stSelectbox"] > div > div {
@@ -122,6 +121,16 @@ st.markdown("""
             background: #2C2520 !important;
             border-color: rgba(232,82,26,0.3) !important;
             color: #F5F0E8 !important;
+        }
+        div[data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
+            align-items: stretch !important;
+        }
+        .nav-sub {
+            font-size: 9px;
+            color: #8A7E76;
+            text-align: center;
+            margin: -6px 0 6px 0;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -281,21 +290,10 @@ def get_media_type(file_type, override=None):
         return "image/webp"
     return "image/jpeg"
 
-def call_claude(messages_list, system):
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=1024,
-        system=system,
-        messages=messages_list
-    )
-    return "".join(block.text for block in response.content if hasattr(block, "text"))
-
 def generate_pdf(job_info, photos):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_margins(15, 15, 15)
-
-    # ── Cover page ──
     pdf.add_page()
     pdf.set_fill_color(26, 22, 18)
     pdf.rect(0, 0, 210, 60, 'F')
@@ -316,13 +314,11 @@ def generate_pdf(job_info, photos):
     pdf.set_xy(15, 36)
     pdf.set_text_color(245, 240, 232)
     pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(0, 5, "Contractor Job Documentation Report", ln=True)
+    pdf.cell(0, 5, "Completed With Pride — Job Documentation Report", ln=True)
     pdf.set_xy(15, 43)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(138, 126, 118)
     pdf.cell(0, 5, f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", ln=True)
-
-    # Job info box
     pdf.set_xy(15, 70)
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(26, 22, 18)
@@ -331,7 +327,6 @@ def generate_pdf(job_info, photos):
     pdf.set_draw_color(232, 82, 26)
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(4)
-
     fields = [
         ("Job Name / ID", job_info.get("job_name", "")),
         ("Contractor", job_info.get("contractor_name", "")),
@@ -348,34 +343,26 @@ def generate_pdf(job_info, photos):
         pdf.set_font("Helvetica", "B", 10)
         pdf.cell(0, 7, str(value), ln=True)
         pdf.set_font("Helvetica", "", 10)
-
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(26, 22, 18)
     pdf.cell(0, 8, f"DOCUMENTED STAGES ({len(photos)} photos)", ln=True)
     pdf.set_draw_color(232, 82, 26)
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-
-    # ── Photo pages ──
     tmp_files = []
     for i, photo in enumerate(photos, 1):
         pdf.add_page()
-
-        # Stage header
         pdf.set_fill_color(232, 82, 26)
         pdf.rect(0, 0, 210, 18, 'F')
         pdf.set_xy(15, 5)
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(255, 255, 255)
         pdf.cell(0, 8, f"STAGE {i}: {photo['stage'].upper()}", ln=True)
-
         pdf.set_xy(15, 22)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(60, 5, f"Timestamp: {photo['timestamp']}", ln=False)
         pdf.cell(0, 5, f"Job: {job_info.get('job_name', '')}  |  Type: {job_info.get('job_type', '')}", ln=True)
-
-        # Photo
         try:
             img_bytes = photo["bytes"]
             img = Image.open(io.BytesIO(img_bytes))
@@ -386,13 +373,10 @@ def generate_pdf(job_info, photos):
             img.save(tmp.name, "JPEG", quality=85)
             tmp.close()
             tmp_files.append(tmp.name)
-
             img_w, img_h = img.size
-            max_w = 165
-            max_h = 110
+            max_w, max_h = 165, 110
             ratio = min(max_w / img_w, max_h / img_h)
-            disp_w = img_w * ratio
-            disp_h = img_h * ratio
+            disp_w, disp_h = img_w * ratio, img_h * ratio
             x_offset = (210 - disp_w) / 2
             pdf.image(tmp.name, x=x_offset, y=32, w=disp_w, h=disp_h)
             pdf.set_y(32 + disp_h + 6)
@@ -401,8 +385,6 @@ def generate_pdf(job_info, photos):
             pdf.set_font("Helvetica", "I", 9)
             pdf.set_text_color(150, 150, 150)
             pdf.cell(0, 6, f"[Photo could not be rendered: {e}]", ln=True)
-
-        # AI Analysis
         pdf.ln(2)
         pdf.set_font("Helvetica", "B", 10)
         pdf.set_text_color(232, 82, 26)
@@ -413,16 +395,12 @@ def generate_pdf(job_info, photos):
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(60, 60, 60)
         pdf.multi_cell(0, 5, photo.get("analysis", "No analysis available."))
-
-        # Footer
         pdf.set_y(-20)
         pdf.set_draw_color(200, 200, 200)
         pdf.line(15, pdf.get_y(), 195, pdf.get_y())
         pdf.set_font("Helvetica", "I", 8)
         pdf.set_text_color(150, 150, 150)
         pdf.cell(0, 5, f"Handy Helper Company LLC  |  handyhelper.company  |  Page {i + 1} of {len(photos) + 1}", ln=True, align="C")
-
-    # ── Disclaimer page ──
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(26, 22, 18)
@@ -432,7 +410,7 @@ def generate_pdf(job_info, photos):
     pdf.ln(6)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(80, 80, 80)
-    disclaimer = (
+    pdf.multi_cell(0, 6, (
         "This Contractor Job Documentation Report was generated by Handy Helper Company LLC "
         "using AI-powered photo analysis. The timestamps recorded in this document reflect the "
         "date and time each photo was uploaded to the Handy Helper platform.\n\n"
@@ -445,29 +423,23 @@ def generate_pdf(job_info, photos):
         "of this report for their records.\n\n"
         "For questions about this report contact:\n"
         "Handy Helper Company LLC\n"
-        "yourhelper@handyhelper.company\n"
-        "513-223-1607\n"
-        "handyhelper.company"
-    )
-    pdf.multi_cell(0, 6, disclaimer)
-
-    # Build PDF bytes
+        "yourhelper@handyhelper.company  |  513-223-1607  |  handyhelper.company"
+    ))
     pdf_bytes = bytes(pdf.output())
-
-    # Clean up temp files
     for f in tmp_files:
         try:
             os.unlink(f)
         except Exception:
             pass
-
     return pdf_bytes
 
-# ── Session state initialization ──
+# ── Session state ──
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_image" not in st.session_state:
     st.session_state.pending_image = None
+if "current_section" not in st.session_state:
+    st.session_state.current_section = "chat"
 if "contractor_photos" not in st.session_state:
     st.session_state.contractor_photos = []
 if "contractor_job_info" not in st.session_state:
@@ -477,13 +449,11 @@ if "job_started" not in st.session_state:
 if "hw_analysis" not in st.session_state:
     st.session_state.hw_analysis = None
 
-# ── TABS ──
-tab1, tab2, tab3 = st.tabs(["💬 Chat", "💰 Pay With Confidence", "🛡️ Completed With Pride"])
+# ══════════════════════════════════════════════════════════
+# SECTION: AI CHAT
+# ══════════════════════════════════════════════════════════
+if st.session_state.current_section == "chat":
 
-# ══════════════════════════════════════════════════════════
-# TAB 1 — AI CHAT (existing chatbot, fully preserved)
-# ══════════════════════════════════════════════════════════
-with tab1:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             if isinstance(message["content"], list):
@@ -515,52 +485,19 @@ with tab1:
                     <span style="font-size:9px; color:#E8521A; font-family:monospace;">FREE 24/7</span>
                 </div>
             </div>
-            <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
-                <div onclick="switchTab('Confidence')" style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
-                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;
-                    cursor:pointer; transition:border-color 0.2s, transform 0.1s;"
-                    onmouseover="this.style.borderColor='rgba(232,82,26,0.6)'"
-                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
-                    onmousedown="this.style.transform='scale(0.97)'"
-                    onmouseup="this.style.transform='scale(1)'"
-                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.6)'"
-                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
-                    <div style="font-size:14px; margin-bottom:2px;">💰</div>
-                    <div style="font-size:10px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Pay With Confidence</div>
-                    <div style="font-size:9px; color:#8A7E76;">Verify work before you pay</div>
-                </div>
-                <div onclick="switchTab('Pride')" style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
-                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;
-                    cursor:pointer; transition:border-color 0.2s, transform 0.1s;"
-                    onmouseover="this.style.borderColor='rgba(232,82,26,0.6)'"
-                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
-                    onmousedown="this.style.transform='scale(0.97)'"
-                    onmouseup="this.style.transform='scale(1)'"
-                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.6)'"
-                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
-                    <div style="font-size:14px; margin-bottom:2px;">🛡️</div>
-                    <div style="font-size:10px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Completed With Pride</div>
-                    <div style="font-size:9px; color:#8A7E76;">Contractors — document your work</div>
-                </div>
-            </div>
-            <script>
-            function switchTab(keyword) {
-                var attempt = function() {
-                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                    for (var i = 0; i < tabs.length; i++) {
-                        if (tabs[i].textContent.indexOf(keyword) !== -1) {
-                            tabs[i].click();
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-                if (!attempt()) {
-                    setTimeout(attempt, 150);
-                }
-            }
-            </script>
         """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💰\nPay With Confidence", key="nav_verify"):
+                st.session_state.current_section = "verify"
+                st.rerun()
+            st.markdown('<p class="nav-sub">Verify work before you pay</p>', unsafe_allow_html=True)
+        with col2:
+            if st.button("🛡️\nCompleted With Pride", key="nav_doc"):
+                st.session_state.current_section = "document"
+                st.rerun()
+            st.markdown('<p class="nav-sub">Contractors — document your work</p>', unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
         "photo", type=["jpg", "jpeg", "png", "webp"],
@@ -596,7 +533,6 @@ with tab1:
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
         pending = st.session_state.pending_image
-
         if pending:
             user_content = [
                 {"type": "image", "source": {"type": "base64",
@@ -607,11 +543,9 @@ with tab1:
         else:
             user_content = prompt
             display_content = prompt
-
         with st.chat_message("user"):
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": display_content})
-
         conversation = []
         for msg in st.session_state.messages[:-1]:
             if isinstance(msg["content"], list):
@@ -621,7 +555,6 @@ with tab1:
             else:
                 conversation.append({"role": msg["role"], "content": msg["content"]})
         conversation.append({"role": "user", "content": user_content})
-
         with st.chat_message("assistant"):
             with st.spinner("Handy Helper is thinking..."):
                 try:
@@ -651,15 +584,21 @@ with tab1:
                     reply = f"Something went wrong: {e}"
             st.markdown(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
-
         st.session_state.pending_image = None
         st.rerun()
 
+# ══════════════════════════════════════════════════════════
+# SECTION: PAY WITH CONFIDENCE
+# ══════════════════════════════════════════════════════════
+elif st.session_state.current_section == "verify":
 
-# ══════════════════════════════════════════════════════════
-# TAB 2 — HOMEOWNER WORK VERIFICATION
-# ══════════════════════════════════════════════════════════
-with tab2:
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("← Back to Chat", key="back_verify"):
+        st.session_state.current_section = "chat"
+        st.session_state.hw_analysis = None
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown("""
         <div style="padding:1rem; margin-bottom:1rem;
             background:linear-gradient(135deg,#2C2520,#1A1612);
@@ -670,7 +609,7 @@ with tab2:
             </div>
             <div style="font-size:12px; color:#8A7E76;">
                 Upload photos of completed work before paying your contractor.
-                Our AI will analyze the quality and give you an independent assessment.
+                Our AI gives you an independent assessment so you never pay blindly again.
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -680,14 +619,11 @@ with tab2:
         placeholder="Example: Plumber replaced pipes under kitchen sink and installed new faucet...",
         height=80, key="hw_job_desc"
     )
-
     hw_photos = st.file_uploader(
         "Upload photos of the completed work",
         type=["jpg", "jpeg", "png", "webp"],
-        accept_multiple_files=True,
-        key="hw_uploader"
+        accept_multiple_files=True, key="hw_uploader"
     )
-
     if hw_photos:
         cols = st.columns(min(len(hw_photos), 3))
         for i, photo in enumerate(hw_photos):
@@ -709,14 +645,10 @@ with tab2:
                         raw = photo.read()
                         encoded, override = compress_and_encode(raw)
                         mt = get_media_type(photo.type, override)
-                        content.append({
-                            "type": "image",
-                            "source": {"type": "base64", "media_type": mt, "data": encoded}
-                        })
-                    content.append({
-                        "type": "text",
-                        "text": f"Job Description: {hw_job_desc}\n\nPlease analyze these photos."
-                    })
+                        content.append({"type": "image",
+                                        "source": {"type": "base64", "media_type": mt, "data": encoded}})
+                    content.append({"type": "text",
+                                    "text": f"Job Description: {hw_job_desc}\n\nPlease analyze these photos."})
                     response = client.messages.create(
                         model="claude-opus-4-6", max_tokens=1500,
                         system=verify_system_prompt,
@@ -739,16 +671,24 @@ with tab2:
             </div>
         """, unsafe_allow_html=True)
         st.markdown(st.session_state.hw_analysis)
-
         if st.button("🔄 Start New Verification", key="hw_reset"):
             st.session_state.hw_analysis = None
             st.rerun()
 
+# ══════════════════════════════════════════════════════════
+# SECTION: COMPLETED WITH PRIDE
+# ══════════════════════════════════════════════════════════
+elif st.session_state.current_section == "document":
 
-# ══════════════════════════════════════════════════════════
-# TAB 3 — CONTRACTOR JOB DOCUMENTATION
-# ══════════════════════════════════════════════════════════
-with tab3:
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("← Back to Chat", key="back_doc"):
+        st.session_state.current_section = "chat"
+        st.session_state.job_started = False
+        st.session_state.contractor_photos = []
+        st.session_state.contractor_job_info = {}
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown("""
         <div style="padding:1rem; margin-bottom:1rem;
             background:linear-gradient(135deg,#2C2520,#1A1612);
@@ -758,42 +698,27 @@ with tab3:
                 🛡️ Completed With Pride
             </div>
             <div style="font-size:12px; color:#8A7E76;">
-                Document your work stage by stage with timestamped photos.
+                Document your work stage by stage with timestamped AI-verified photos.
                 Protects you from disputes and builds homeowner confidence.
             </div>
         </div>
     """, unsafe_allow_html=True)
 
     STAGES = [
-        "Before — Demo/Removal",
-        "Rough-In Phase",
-        "Behind Wall / In Wall Cavity",
-        "Under Floor / Under Slab",
-        "In Ceiling / Attic Space",
-        "Before Drywall",
-        "Before Tile",
-        "Before Insulation",
-        "Before Concrete Pour",
-        "Before Backfill",
-        "Framing Complete",
-        "Electrical Rough-In",
-        "Plumbing Rough-In",
-        "HVAC Rough-In",
-        "Inspection Ready",
-        "Final Completion",
-        "Custom Stage...",
+        "Before — Demo/Removal", "Rough-In Phase", "Behind Wall / In Wall Cavity",
+        "Under Floor / Under Slab", "In Ceiling / Attic Space", "Before Drywall",
+        "Before Tile", "Before Insulation", "Before Concrete Pour", "Before Backfill",
+        "Framing Complete", "Electrical Rough-In", "Plumbing Rough-In", "HVAC Rough-In",
+        "Inspection Ready", "Final Completion", "Custom Stage...",
     ]
-
     JOB_TYPES = [
-        "Plumbing", "Electrical", "HVAC", "Roofing", "Flooring",
-        "Drywall", "Foundation / Concrete", "Framing", "Insulation",
-        "Painting", "Tile Work", "General Contractor", "Other"
+        "Plumbing", "Electrical", "HVAC", "Roofing", "Flooring", "Drywall",
+        "Foundation / Concrete", "Framing", "Insulation", "Painting", "Tile Work",
+        "General Contractor", "Other"
     ]
 
-    # ── Step 1: Job Info ──
     if not st.session_state.job_started:
         st.markdown("**Step 1 — Enter Job Information**")
-
         job_name    = st.text_input("Job Name / ID *", placeholder="e.g. Johnson Kitchen Reno — June 2026", key="job_name")
         cont_name   = st.text_input("Contractor Name *", placeholder="Your name or company name", key="cont_name")
         client_name = st.text_input("Client Name *", placeholder="Homeowner name", key="client_name")
@@ -806,50 +731,37 @@ with tab3:
                 st.warning("Please fill in all required fields marked with *")
             else:
                 st.session_state.contractor_job_info = {
-                    "job_name": job_name.strip(),
-                    "contractor_name": cont_name.strip(),
-                    "client_name": client_name.strip(),
-                    "address": address.strip(),
-                    "job_type": job_type,
-                    "date": job_date,
+                    "job_name": job_name.strip(), "contractor_name": cont_name.strip(),
+                    "client_name": client_name.strip(), "address": address.strip(),
+                    "job_type": job_type, "date": job_date,
                 }
                 st.session_state.contractor_photos = []
                 st.session_state.job_started = True
                 st.rerun()
-
     else:
-        # ── Step 2: Photo Upload ──
         info = st.session_state.contractor_job_info
         st.markdown(f"""
-            <div class="verify-card">
-                <div style="font-size:13px; font-weight:700; color:#E8521A;">📋 {info.get('job_name', '')}</div>
-                <div style="font-size:11px; color:#8A7E76; margin-top:4px;">
-                    {info.get('contractor_name', '')} → {info.get('client_name', '')} &nbsp;|&nbsp;
-                    {info.get('job_type', '')} &nbsp;|&nbsp; {info.get('address', '')}
+            <div style="background:#2C2520; border:1px solid rgba(232,82,26,0.25);
+                border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.75rem;">
+                <div style="font-size:13px; font-weight:700; color:#E8521A;">{info.get('job_name','')}</div>
+                <div style="font-size:11px; color:#8A7E76; margin-top:3px;">
+                    {info.get('contractor_name','')} → {info.get('client_name','')} &nbsp;|&nbsp;
+                    {info.get('job_type','')} &nbsp;|&nbsp; {info.get('address','')}
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown(f"**Step 2 — Add Photos** &nbsp; <span style='color:#8A7E76; font-size:12px;'>{len(st.session_state.contractor_photos)} photo(s) documented</span>", unsafe_allow_html=True)
+        st.markdown(f"**Step 2 — Add Photos** &nbsp;<span style='color:#8A7E76;font-size:12px;'>{len(st.session_state.contractor_photos)} documented</span>", unsafe_allow_html=True)
 
         stage_select = st.selectbox("Work Stage", STAGES, key="stage_select")
-        if stage_select == "Custom Stage...":
-            stage_label = st.text_input("Enter custom stage name", key="custom_stage")
-        else:
-            stage_label = stage_select
+        stage_label = st.text_input("Enter custom stage name", key="custom_stage") if stage_select == "Custom Stage..." else stage_select
 
-        doc_photo = st.file_uploader(
-            "Upload photo for this stage",
-            type=["jpg", "jpeg", "png", "webp"],
-            key="doc_uploader"
-        )
-
+        doc_photo = st.file_uploader("Upload photo for this stage",
+                                     type=["jpg", "jpeg", "png", "webp"], key="doc_uploader")
         if doc_photo:
             st.image(doc_photo, caption="Preview", width=200)
 
-        add_photo_btn = st.button("📸 Add Photo to Job Record", key="add_photo", use_container_width=True)
-
-        if add_photo_btn:
+        if st.button("📸 Add Photo to Job Record", key="add_photo", use_container_width=True):
             if not doc_photo:
                 st.warning("Please upload a photo first.")
             elif not stage_label or stage_label.strip() == "":
@@ -857,40 +769,29 @@ with tab3:
             else:
                 raw_bytes = doc_photo.read()
                 timestamp = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p")
-
-                with st.spinner("Analyzing photo and generating documentation notes..."):
+                with st.spinner("Analyzing and documenting..."):
                     try:
                         encoded, override = compress_and_encode(raw_bytes)
                         mt = get_media_type(doc_photo.type, override)
                         system = doc_system_prompt.format(
-                            stage=stage_label,
-                            job_type=info.get("job_type", "")
-                        )
+                            stage=stage_label, job_type=info.get("job_type", ""))
                         response = client.messages.create(
-                            model="claude-opus-4-6", max_tokens=400,
-                            system=system,
+                            model="claude-opus-4-6", max_tokens=400, system=system,
                             messages=[{"role": "user", "content": [
                                 {"type": "image", "source": {"type": "base64", "media_type": mt, "data": encoded}},
-                                {"type": "text", "text": f"Please document this photo for stage: {stage_label}"}
+                                {"type": "text", "text": f"Document this photo for stage: {stage_label}"}
                             ]}]
                         )
-                        analysis = "".join(
-                            block.text for block in response.content if hasattr(block, "text")
-                        )
+                        analysis = "".join(block.text for block in response.content if hasattr(block, "text"))
                     except Exception as e:
                         analysis = f"AI analysis unavailable: {e}"
-
                 st.session_state.contractor_photos.append({
-                    "stage": stage_label,
-                    "timestamp": timestamp,
-                    "bytes": raw_bytes,
-                    "analysis": analysis,
-                    "filename": doc_photo.name
+                    "stage": stage_label, "timestamp": timestamp,
+                    "bytes": raw_bytes, "analysis": analysis, "filename": doc_photo.name
                 })
-                st.success(f"✓ Photo added — {stage_label} — {timestamp}")
+                st.success(f"✓ Added — {stage_label} — {timestamp}")
                 st.rerun()
 
-        # ── Documented photos list ──
         if st.session_state.contractor_photos:
             st.markdown("---")
             st.markdown("**Documented Stages:**")
@@ -903,8 +804,6 @@ with tab3:
                         st.rerun()
 
             st.markdown("---")
-
-            # ── Generate PDF ──
             if st.button("📄 Generate & Download PDF Report", key="gen_pdf", use_container_width=True):
                 with st.spinner("Building your PDF report..."):
                     try:
@@ -916,17 +815,14 @@ with tab3:
                             "job_name", "job").replace(" ", "_").replace("/", "-")
                         filename = f"HandyHelper_{job_name_safe}_{datetime.now().strftime('%Y%m%d')}.pdf"
                         st.download_button(
-                            label="⬇️ Download PDF Report",
-                            data=pdf_bytes,
-                            file_name=filename,
-                            mime="application/pdf",
+                            label="⬇️ Download PDF Report", data=pdf_bytes,
+                            file_name=filename, mime="application/pdf",
                             use_container_width=True
                         )
-                        st.success("✓ Your PDF report is ready to download!")
+                        st.success("✓ Your PDF report is ready!")
                     except Exception as e:
                         st.error(f"PDF generation failed: {e}")
 
-        # ── Reset job ──
         st.markdown("")
         if st.button("🔄 Start New Job", key="reset_job"):
             st.session_state.job_started = False
