@@ -542,12 +542,53 @@ if st.session_state.current_section == "chat":
         st.success("✓ Photo still attached! Type your question and tap ➤")
 
     st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
+
     user_input = st.text_area(
         "question", placeholder="What project are we working on today?",
         height=70, key="chat_input", label_visibility="collapsed"
     )
     send = st.button("➤", key="send_btn")
+
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # Move the ➤ button into .input-wrap so CSS absolute positioning works
+    st.markdown("""<script>
+    (function() {
+        function fixSend() {
+            var wrap = document.querySelector('.input-wrap');
+            if (!wrap) return;
+            var btns = document.querySelectorAll('[data-testid="stButton"]');
+            btns.forEach(function(b) {
+                var btn = b.querySelector('button');
+                if (btn && btn.textContent.trim() === '\u27a4') {
+                    if (!wrap.contains(b)) {
+                        wrap.appendChild(b);
+                        b.style.position = 'absolute';
+                        b.style.right = '8px';
+                        b.style.bottom = '8px';
+                        b.style.zIndex = '10';
+                        b.style.margin = '0';
+                        var inner = b.querySelector('button');
+                        if (inner) {
+                            inner.style.background = '#E8521A';
+                            inner.style.border = 'none';
+                            inner.style.borderRadius = '8px';
+                            inner.style.width = '36px';
+                            inner.style.height = '36px';
+                            inner.style.minHeight = '0';
+                            inner.style.fontSize = '18px';
+                            inner.style.padding = '0';
+                            inner.style.color = 'white';
+                            inner.style.cursor = 'pointer';
+                        }
+                    }
+                }
+            });
+        }
+        fixSend();
+        new MutationObserver(fixSend).observe(document.body, {childList:true, subtree:true});
+    })();
+    </script>""", unsafe_allow_html=True)
 
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
