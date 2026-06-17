@@ -475,7 +475,7 @@ if "hw_analysis" not in st.session_state:
     st.session_state.hw_analysis = None
 
 # ── TABS ──
-tab1, tab2, tab3 = st.tabs(["💬 Chat", "🔍 Verify Work", "📋 Document Job"])
+tab1, tab2, tab3 = st.tabs(["💬 Chat", "💰 Pay With Confidence", "🛡️ Completed With Pride"])
 
 # ══════════════════════════════════════════════════════════
 # TAB 1 — AI CHAT (existing chatbot, fully preserved)
@@ -618,7 +618,7 @@ with tab2:
             border:1px solid rgba(232,82,26,0.3);
             border-left:4px solid #E8521A; border-radius:8px;">
             <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.3rem;">
-                🔍 Homeowner Work Verification
+                💰 Pay With Confidence
             </div>
             <div style="font-size:12px; color:#8A7E76;">
                 Upload photos of completed work before paying your contractor.
@@ -707,7 +707,7 @@ with tab3:
             border:1px solid rgba(232,82,26,0.3);
             border-left:4px solid #E8521A; border-radius:8px;">
             <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.3rem;">
-                📋 Contractor Job Documentation
+                🛡️ Completed With Pride
             </div>
             <div style="font-size:12px; color:#8A7E76;">
                 Document your work stage by stage with timestamped photos.
