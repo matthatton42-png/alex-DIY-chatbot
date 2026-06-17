@@ -162,7 +162,10 @@ CATEGORIES:
 - Propane, Natural Gas, Foundation Repair, Landscaping
 - Tile and Grout, Smart Home Devices, Garbage Disposal
 - Dishwasher, Fencing, Weatherproofing, Carbon Monoxide Detectors
-- Smoke Detectors
+- Smoke Detectors, Pool and Spa, Insulation, Concrete and Masonry
+- Chimney and Fireplace, Irrigation and Sprinklers, Basement Waterproofing
+- EV Charging, Solar Panels, Dryer Vent Cleaning, Septic System
+- Crawl Space, Cabinet Repair, Exterior Lighting
 
 SAFETY RESTRICTIONS TIER 1:
 - Power tools, Heavy equipment, Fire hazards, Safety concerns
@@ -505,7 +508,7 @@ with tab1:
                     Ask me anything about your project and let's get it done together.
                 </div>
                 <div style="display:flex; justify-content:center; gap:0.75rem;">
-                    <span style="font-size:9px; color:#E8521A; font-family:monospace;">37+ CATEGORIES</span>
+                    <span style="font-size:9px; color:#E8521A; font-family:monospace;">50+ CATEGORIES</span>
                     <span style="font-size:9px; color:#8A7E76;">•</span>
                     <span style="font-size:9px; color:#E8521A; font-family:monospace;">PHOTO ANALYSIS</span>
                     <span style="font-size:9px; color:#8A7E76;">•</span>
