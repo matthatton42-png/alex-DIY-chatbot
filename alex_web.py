@@ -452,6 +452,12 @@ if "job_started" not in st.session_state:
 if "hw_analysis" not in st.session_state:
     st.session_state.hw_analysis = None
 
+# ── Read nav from query param (set by HTML card clicks) ──
+_nav = st.query_params.get("section", "")
+if _nav in ("verify", "document"):
+    st.session_state.current_section = _nav
+    st.query_params.clear()
+
 # ══════════════════════════════════════════════════════════
 # SECTION: AI CHAT
 # ══════════════════════════════════════════════════════════
@@ -490,10 +496,10 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
-        # HTML nav cards — perfectly aligned, no Streamlit column constraints
+        # HTML nav cards — clicking sets a URL query param that Python reads on reload
         st.markdown("""
             <div style="display:flex; gap:0.4rem; margin:0 0 0.5rem 0;">
-                <div onclick="navClick('PWC_NAV')" style="
+                <div onclick="goTo('verify')" style="
                     flex:1; background:#2C2520;
                     border:1px solid rgba(232,82,26,0.2); border-radius:10px;
                     padding:0.5rem; text-align:center; cursor:pointer;
@@ -506,7 +512,7 @@ if st.session_state.current_section == "chat":
                     <div style="font-size:11px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Pay With Confidence</div>
                     <div style="font-size:9px; color:#8A7E76;">Verify work before you pay</div>
                 </div>
-                <div onclick="navClick('CWP_NAV')" style="
+                <div onclick="goTo('document')" style="
                     flex:1; background:#2C2520;
                     border:1px solid rgba(232,82,26,0.2); border-radius:10px;
                     padding:0.5rem; text-align:center; cursor:pointer;
@@ -521,59 +527,11 @@ if st.session_state.current_section == "chat":
                 </div>
             </div>
             <script>
-            function navClick(label) {
-                var btns = document.querySelectorAll('button');
-                for (var i = 0; i < btns.length; i++) {
-                    if (btns[i].textContent.trim() === label) {
-                        btns[i].click();
-                        return;
-                    }
-                }
+            function goTo(section) {
+                var url = new URL(window.location.href);
+                url.searchParams.set('section', section);
+                window.location.href = url.toString();
             }
-            </script>
-        """, unsafe_allow_html=True)
-
-        # Hidden Streamlit buttons triggered by HTML cards above
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("PWC_NAV", key="nav_verify"):
-                st.session_state.current_section = "verify"
-                st.rerun()
-        with col2:
-            if st.button("CWP_NAV", key="nav_doc"):
-                st.session_state.current_section = "document"
-                st.rerun()
-
-        # JS to hide the nav buttons and keep them hidden across rerenders
-        st.markdown("""
-            <script>
-            function hideNavBtns() {
-                document.querySelectorAll('button').forEach(function(btn) {
-                    var txt = btn.textContent.trim();
-                    if (txt === 'PWC_NAV' || txt === 'CWP_NAV') {
-                        btn.style.visibility = 'hidden';
-                        btn.style.height = '0';
-                        btn.style.minHeight = '0';
-                        btn.style.padding = '0';
-                        btn.style.margin = '0';
-                        btn.style.border = 'none';
-                        btn.style.overflow = 'hidden';
-                        var p = btn.parentElement;
-                        for (var i = 0; i < 5; i++) {
-                            if (!p) break;
-                            p.style.height = '0';
-                            p.style.minHeight = '0';
-                            p.style.overflow = 'hidden';
-                            p.style.margin = '0';
-                            p.style.padding = '0';
-                            if (p.dataset && p.dataset.testid === 'stHorizontalBlock') break;
-                            p = p.parentElement;
-                        }
-                    }
-                });
-            }
-            hideNavBtns();
-            new MutationObserver(hideNavBtns).observe(document.body, {childList:true, subtree:true});
             </script>
         """, unsafe_allow_html=True)
 
