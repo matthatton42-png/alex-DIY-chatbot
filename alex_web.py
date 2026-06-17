@@ -24,7 +24,7 @@ st.markdown("""
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
         .block-container {
-            padding: 1rem 1rem 1rem 1rem !important;
+            padding: 0.5rem 1rem 0.5rem 1rem !important;
             max-width: 100% !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
@@ -37,18 +37,29 @@ st.markdown("""
             border: 1px solid rgba(232,82,26,0.2) !important;
             border-radius: 10px !important;
             width: 100% !important;
-            min-height: 72px !important;
-            font-size: 13px !important;
+            min-height: 52px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
-            padding: 0.5rem !important;
-            line-height: 1.4 !important;
+            padding: 0.35rem 0.5rem !important;
+            line-height: 1.3 !important;
             transition: border-color 0.2s !important;
+            white-space: pre-wrap !important;
         }
         .stButton > button:hover {
             background: #3D3530 !important;
             border-color: rgba(232,82,26,0.5) !important;
         }
         .stButton > button:focus { box-shadow: none !important; }
+
+        /* Force columns side by side always */
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            gap: 0.4rem !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"] {
+            min-width: 0 !important;
+            flex: 1 !important;
+        }
 
         /* ── SEND BUTTON: only inside input-wrap ── */
         .input-wrap { position: relative; margin-top: 0.75rem; }
@@ -465,16 +476,16 @@ if st.session_state.current_section == "chat":
 
     if not st.session_state.messages:
         st.markdown("""
-            <div style="padding:1.25rem; margin-bottom:0.75rem;
+            <div style="padding:0.75rem; margin-bottom:0.5rem;
                 background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
                 border:1px solid rgba(232,82,26,0.3);
                 border-left:4px solid #E8521A;
                 border-radius:8px; text-align:center;">
-                <div style="font-size:22px; margin-bottom:0.4rem;">🔧</div>
-                <div style="font-size:16px; font-weight:700; color:#F5F0E8; margin-bottom:0.4rem;">
+                <div style="font-size:18px; margin-bottom:0.25rem;">🔧</div>
+                <div style="font-size:14px; font-weight:700; color:#F5F0E8; margin-bottom:0.25rem;">
                     Every Expert Was Once a Beginner
                 </div>
-                <div style="font-size:11px; color:#8A7E76; max-width:280px; margin:0 auto 0.6rem;">
+                <div style="font-size:10px; color:#8A7E76; max-width:280px; margin:0 auto 0.4rem;">
                     Ask me anything about your project and let's get it done together.
                 </div>
                 <div style="display:flex; justify-content:center; gap:0.75rem;">
@@ -489,15 +500,13 @@ if st.session_state.current_section == "chat":
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("💰\nPay With Confidence", key="nav_verify"):
+            if st.button("💰  Pay With Confidence\nVerify work before you pay", key="nav_verify"):
                 st.session_state.current_section = "verify"
                 st.rerun()
-            st.markdown('<p class="nav-sub">Verify work before you pay</p>', unsafe_allow_html=True)
         with col2:
-            if st.button("🛡️\nCompleted With Pride", key="nav_doc"):
+            if st.button("🛡️  Completed With Pride\nContractors — document your work", key="nav_doc"):
                 st.session_state.current_section = "document"
                 st.rerun()
-            st.markdown('<p class="nav-sub">Contractors — document your work</p>', unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
         "photo", type=["jpg", "jpeg", "png", "webp"],
