@@ -516,19 +516,50 @@ with tab1:
                 </div>
             </div>
             <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
-                <div style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
-                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;">
+                <div onclick="switchTab('Confidence')" style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
+                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;
+                    cursor:pointer; transition:border-color 0.2s, transform 0.1s;"
+                    onmouseover="this.style.borderColor='rgba(232,82,26,0.6)'"
+                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
+                    onmousedown="this.style.transform='scale(0.97)'"
+                    onmouseup="this.style.transform='scale(1)'"
+                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.6)'"
+                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
                     <div style="font-size:14px; margin-bottom:2px;">💰</div>
                     <div style="font-size:10px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Pay With Confidence</div>
                     <div style="font-size:9px; color:#8A7E76;">Verify work before you pay</div>
                 </div>
-                <div style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
-                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;">
+                <div onclick="switchTab('Pride')" style="flex:1; background:#2C2520; border:1px solid rgba(232,82,26,0.2);
+                    border-radius:8px; padding:0.6rem 0.75rem; text-align:center;
+                    cursor:pointer; transition:border-color 0.2s, transform 0.1s;"
+                    onmouseover="this.style.borderColor='rgba(232,82,26,0.6)'"
+                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
+                    onmousedown="this.style.transform='scale(0.97)'"
+                    onmouseup="this.style.transform='scale(1)'"
+                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.6)'"
+                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
                     <div style="font-size:14px; margin-bottom:2px;">🛡️</div>
                     <div style="font-size:10px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Completed With Pride</div>
                     <div style="font-size:9px; color:#8A7E76;">Contractors — document your work</div>
                 </div>
             </div>
+            <script>
+            function switchTab(keyword) {
+                var attempt = function() {
+                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                    for (var i = 0; i < tabs.length; i++) {
+                        if (tabs[i].textContent.indexOf(keyword) !== -1) {
+                            tabs[i].click();
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                if (!attempt()) {
+                    setTimeout(attempt, 150);
+                }
+            }
+            </script>
         """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
