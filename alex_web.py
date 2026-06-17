@@ -55,10 +55,14 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"] {
             flex-wrap: nowrap !important;
             gap: 0.4rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         div[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"] {
             min-width: 0 !important;
             flex: 1 !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
         /* ── SEND BUTTON: only inside input-wrap ── */
