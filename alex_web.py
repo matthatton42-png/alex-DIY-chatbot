@@ -51,8 +51,7 @@ st.markdown("""
         }
         .stButton > button:focus { box-shadow: none !important; }
 
-        /* Hide the nav trigger buttons completely */
-        .hidden-nav { display: none !important; }
+
 
         /* ── SEND BUTTON: only inside input-wrap ── */
         .input-wrap { position: relative; margin-top: 0.75rem; }
@@ -535,7 +534,6 @@ if st.session_state.current_section == "chat":
         """, unsafe_allow_html=True)
 
         # Hidden Streamlit buttons triggered by HTML cards above
-        st.markdown('<div class="hidden-nav">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
             if st.button("PWC_NAV", key="nav_verify"):
@@ -545,7 +543,39 @@ if st.session_state.current_section == "chat":
             if st.button("CWP_NAV", key="nav_doc"):
                 st.session_state.current_section = "document"
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+
+        # JS to hide the nav buttons and keep them hidden across rerenders
+        st.markdown("""
+            <script>
+            function hideNavBtns() {
+                document.querySelectorAll('button').forEach(function(btn) {
+                    var txt = btn.textContent.trim();
+                    if (txt === 'PWC_NAV' || txt === 'CWP_NAV') {
+                        btn.style.visibility = 'hidden';
+                        btn.style.height = '0';
+                        btn.style.minHeight = '0';
+                        btn.style.padding = '0';
+                        btn.style.margin = '0';
+                        btn.style.border = 'none';
+                        btn.style.overflow = 'hidden';
+                        var p = btn.parentElement;
+                        for (var i = 0; i < 5; i++) {
+                            if (!p) break;
+                            p.style.height = '0';
+                            p.style.minHeight = '0';
+                            p.style.overflow = 'hidden';
+                            p.style.margin = '0';
+                            p.style.padding = '0';
+                            if (p.dataset && p.dataset.testid === 'stHorizontalBlock') break;
+                            p = p.parentElement;
+                        }
+                    }
+                });
+            }
+            hideNavBtns();
+            new MutationObserver(hideNavBtns).observe(document.body, {childList:true, subtree:true});
+            </script>
+        """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
         "photo", type=["jpg", "jpeg", "png", "webp"],
