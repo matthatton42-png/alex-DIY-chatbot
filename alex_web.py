@@ -52,20 +52,7 @@ st.markdown("""
         .stButton > button:focus { box-shadow: none !important; }
 
         /* Hide the nav trigger buttons completely */
-        .hidden-nav .stButton > button {
-            height: 0 !important;
-            min-height: 0 !important;
-            overflow: hidden !important;
-            padding: 0 !important;
-            border: none !important;
-            margin: 0 !important;
-            opacity: 0 !important;
-        }
-        .hidden-nav div[data-testid="stHorizontalBlock"] {
-            gap: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
+        .hidden-nav { display: none !important; }
 
         /* ── SEND BUTTON: only inside input-wrap ── */
         .input-wrap { position: relative; margin-top: 0.75rem; }
