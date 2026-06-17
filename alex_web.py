@@ -68,7 +68,7 @@ st.markdown("""
             border-radius: 8px !important;
             width: 36px !important;
             height: 36px !important;
-            min-height: unset !important;
+            min-height: 0 !important;
             font-size: 18px !important;
             font-weight: 400 !important;
             padding: 0 !important;
@@ -452,12 +452,6 @@ if "job_started" not in st.session_state:
 if "hw_analysis" not in st.session_state:
     st.session_state.hw_analysis = None
 
-# ── Read nav from query param (set by HTML card clicks) ──
-_nav = st.query_params.get("section", "")
-if _nav in ("verify", "document"):
-    st.session_state.current_section = _nav
-    st.query_params.clear()
-
 # ══════════════════════════════════════════════════════════
 # SECTION: AI CHAT
 # ══════════════════════════════════════════════════════════
@@ -496,44 +490,33 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
-        # HTML nav cards — clicking sets a URL query param that Python reads on reload
-        st.markdown("""
-            <div style="display:flex; gap:0.4rem; margin:0 0 0.5rem 0;">
-                <div onclick="goTo('verify')" style="
-                    flex:1; background:#2C2520;
-                    border:1px solid rgba(232,82,26,0.2); border-radius:10px;
-                    padding:0.5rem; text-align:center; cursor:pointer;
-                    transition:border-color 0.2s;"
-                    onmouseover="this.style.borderColor='rgba(232,82,26,0.5)'"
-                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
-                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.5)'"
-                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
-                    <div style="font-size:14px; margin-bottom:2px;">💰</div>
-                    <div style="font-size:11px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Pay With Confidence</div>
-                    <div style="font-size:9px; color:#8A7E76;">Verify work before you pay</div>
-                </div>
-                <div onclick="goTo('document')" style="
-                    flex:1; background:#2C2520;
-                    border:1px solid rgba(232,82,26,0.2); border-radius:10px;
-                    padding:0.5rem; text-align:center; cursor:pointer;
-                    transition:border-color 0.2s;"
-                    onmouseover="this.style.borderColor='rgba(232,82,26,0.5)'"
-                    onmouseout="this.style.borderColor='rgba(232,82,26,0.2)'"
-                    ontouchstart="this.style.borderColor='rgba(232,82,26,0.5)'"
-                    ontouchend="this.style.borderColor='rgba(232,82,26,0.2)'">
-                    <div style="font-size:14px; margin-bottom:2px;">🛡️</div>
-                    <div style="font-size:11px; font-weight:600; color:#F5F0E8; margin-bottom:2px;">Completed With Pride</div>
-                    <div style="font-size:9px; color:#8A7E76;">Contractors — document your work</div>
-                </div>
-            </div>
-            <script>
-            function goTo(section) {
-                var url = new URL(window.location.href);
-                url.searchParams.set('section', section);
-                window.location.href = url.toString();
-            }
-            </script>
-        """, unsafe_allow_html=True)
+        col1, col2 = st.columns(2, gap="small")
+        with col1:
+            if st.button("💰  Pay With Confidence", key="nav_verify",
+                         use_container_width=True):
+                st.session_state.current_section = "verify"
+                st.rerun()
+        with col2:
+            if st.button("🛡️  Completed With Pride", key="nav_doc",
+                         use_container_width=True):
+                st.session_state.current_section = "document"
+                st.rerun()
+
+        # JS: remove Streamlit's inline column padding so right edge aligns with banner
+        st.markdown("""<script>
+        (function fixCols() {
+            document.querySelectorAll('[data-testid="column"]').forEach(function(c) {
+                c.style.paddingLeft = '0';
+                c.style.paddingRight = '0';
+            });
+        })();
+        new MutationObserver(function() {
+            document.querySelectorAll('[data-testid="column"]').forEach(function(c) {
+                c.style.paddingLeft = '0';
+                c.style.paddingRight = '0';
+            });
+        }).observe(document.body, {childList:true, subtree:true});
+        </script>""", unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
         "photo", type=["jpg", "jpeg", "png", "webp"],
