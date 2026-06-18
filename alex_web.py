@@ -53,10 +53,16 @@ st.markdown("""
 
 
 
-        /* ── ALL HORIZONTAL BLOCKS: bottom-align columns ── */
+        /* ── ALL HORIZONTAL BLOCKS: bottom-align columns, never wrap ── */
         div[data-testid="stHorizontalBlock"] {
             align-items: flex-end !important;
             gap: 6px !important;
+            flex-wrap: nowrap !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            min-width: 0 !important;
+            width: auto !important;
+            flex: 1 1 0 !important;
         }
         div[data-testid="stHorizontalBlock"] [data-testid="column"] {
             padding: 0 !important;
@@ -89,7 +95,7 @@ st.markdown("""
             font-size: 14px !important;
             resize: none !important;
             padding: 10px 16px !important;
-            min-height: 60px !important;
+            min-height: 46px !important;
             font-family: sans-serif !important;
         }
         .stTextArea textarea:focus {
@@ -483,7 +489,7 @@ if st.session_state.current_section == "chat":
     with col_text:
         user_input = st.text_area(
             "question", placeholder="What project are we working on today?",
-            height=60, key="chat_input", label_visibility="collapsed"
+            height=46, key="chat_input", label_visibility="collapsed"
         )
 
     # Style the ➤ button orange — simple JS by text content
@@ -497,7 +503,7 @@ if st.session_state.current_section == "chat":
                     b.style.border='none';
                     b.style.borderRadius='8px';
                     b.style.width='100%';
-                    b.style.height='60px';
+                    b.style.height='46px';
                     b.style.minHeight='0';
                     b.style.fontSize='20px';
                     b.style.padding='0';
