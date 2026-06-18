@@ -62,36 +62,9 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"] [data-testid="column"] {
             padding: 0 !important;
         }
-
-        /* ── INPUT WRAP: arrow button sits inside bottom-left of the text box ── */
-        .input-wrap { position: relative !important; margin: 0.4rem 0 !important; }
-        .input-wrap .stTextArea { margin: 0 !important; }
-        .input-wrap .stTextArea textarea { padding-left: 50px !important; }
-        .input-wrap .stButton {
-            position: absolute !important;
-            left: 8px !important;
-            bottom: 8px !important;
-            z-index: 10 !important;
-            margin: 0 !important;
-        }
-        .input-wrap .stButton > button {
-            background: #E8521A !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            width: 36px !important;
-            height: 36px !important;
-            min-height: 0 !important;
-            font-size: 18px !important;
-            font-weight: 400 !important;
-            padding: 0 !important;
-        }
-        .input-wrap .stButton > button:hover { background: #C43E0A !important; }
-
-        /* ── NAV WRAP: two feature buttons side by side, no Streamlit columns ── */
-        .nav-wrap { display: flex !important; gap: 0.4rem !important; margin: 0 0 0.5rem 0 !important; }
-        .nav-wrap > div[data-testid="stButton"] { flex: 1 1 0 !important; width: auto !important; }
-        .nav-wrap .stButton > button { width: 100% !important; }
+        /* Send arrow and nav buttons are positioned via JS DOM manipulation below —
+           this guarantees real parent/child relationships rather than relying on
+           CSS selectors matching elements that markdown calls do not actually nest. */
 
         /* ── BACK BUTTON ── */
         .back-btn .stButton > button {
@@ -507,14 +480,12 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
-    # ── Chat input — arrow inside bottom-left of the box (proven technique) ──
-    st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
+    # ── Chat input — plain widgets, no markdown-wrap tricks ──
     user_input = st.text_area(
         "question", placeholder="What project are we working on today?",
         height=70, key="chat_input", label_visibility="collapsed"
     )
     send = st.button("➤", key="send_btn")
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Upload box (under chat input) ──
     uploaded_file = st.file_uploader(
@@ -542,62 +513,110 @@ if st.session_state.current_section == "chat":
 
     # ── Nav buttons (under uploader, only when no messages) ──
     if not st.session_state.messages:
-        st.markdown('<div class="nav-wrap">', unsafe_allow_html=True)
         if st.button("💰  Pay With Confidence", key="nav_verify"):
             st.session_state.current_section = "verify"
             st.rerun()
         if st.button("🛡️  Completed With Pride", key="nav_doc"):
             st.session_state.current_section = "document"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── FAILSAFE: redundant JS that re-applies positioning/sizing every render ──
-    # Backs up the CSS above in case Streamlit's DOM structure shifts on any device.
+    # ── LAYOUT ENFORCEMENT: real DOM manipulation, not CSS-selector guessing ──
+    # Streamlit's st.markdown() calls do NOT create real parent/child nesting
+    # with widgets rendered afterward — each markdown call is its own isolated
+    # element. So instead of hoping a CSS class wraps things correctly, this
+    # finds the ACTUAL rendered elements by their text/placeholder, physically
+    # moves them with appendChild (guaranteeing a real DOM relationship), and
+    # then applies positioning. This re-runs after every Streamlit rerender.
     st.markdown("""<script>
     (function() {
         function enforceLayout() {
-            // Pin the send arrow inside the bottom-left of the input box
-            var wrap = document.querySelector('.input-wrap');
-            if (wrap) {
-                var btns = wrap.querySelectorAll('[data-testid="stButton"]');
-                btns.forEach(function(b) {
-                    var inner = b.querySelector('button');
-                    if (inner && inner.textContent.trim() === '➤') {
-                        b.style.position = 'absolute';
-                        b.style.left = '8px';
-                        b.style.right = 'auto';
-                        b.style.bottom = '8px';
-                        b.style.zIndex = '10';
-                        b.style.margin = '0';
-                        inner.style.background = '#E8521A';
-                        inner.style.color = 'white';
-                        inner.style.border = 'none';
-                        inner.style.borderRadius = '8px';
-                        inner.style.width = '36px';
-                        inner.style.height = '36px';
-                        inner.style.minHeight = '0';
-                        inner.style.fontSize = '18px';
-                        inner.style.padding = '0';
-                        inner.style.cursor = 'pointer';
+            // ── 1. SEND ARROW: move into the textarea's real container ──
+            var textareas = document.querySelectorAll('textarea');
+            var targetTa = null;
+            textareas.forEach(function(ta) {
+                if (ta.placeholder && ta.placeholder.indexOf('What project are we working on today') !== -1) {
+                    targetTa = ta;
+                }
+            });
+            if (targetTa) {
+                var taBlock = targetTa.closest('[data-testid="stTextArea"]');
+                var taParent = taBlock ? taBlock.parentElement : null;
+                if (taParent) {
+                    if (taParent.dataset.hhPositioned !== 'true') {
+                        taParent.style.position = 'relative';
+                        taParent.dataset.hhPositioned = 'true';
                     }
-                });
+                    targetTa.style.paddingLeft = '50px';
+                    document.querySelectorAll('[data-testid="stButton"]').forEach(function(btnWrap) {
+                        var innerBtn = btnWrap.querySelector('button');
+                        if (innerBtn && innerBtn.textContent.trim() === '➤') {
+                            if (btnWrap.parentElement !== taParent) {
+                                taParent.appendChild(btnWrap);
+                            }
+                            btnWrap.style.position = 'absolute';
+                            btnWrap.style.left = '8px';
+                            btnWrap.style.right = 'auto';
+                            btnWrap.style.bottom = '8px';
+                            btnWrap.style.top = 'auto';
+                            btnWrap.style.zIndex = '10';
+                            btnWrap.style.margin = '0';
+                            btnWrap.style.width = 'auto';
+                            innerBtn.style.background = '#E8521A';
+                            innerBtn.style.color = 'white';
+                            innerBtn.style.border = 'none';
+                            innerBtn.style.borderRadius = '8px';
+                            innerBtn.style.width = '36px';
+                            innerBtn.style.height = '36px';
+                            innerBtn.style.minHeight = '0';
+                            innerBtn.style.fontSize = '18px';
+                            innerBtn.style.fontWeight = '400';
+                            innerBtn.style.padding = '0';
+                            innerBtn.style.cursor = 'pointer';
+                        }
+                    });
+                }
             }
-            // Force the two feature buttons to sit side by side, equal width
-            var navWrap = document.querySelector('.nav-wrap');
-            if (navWrap) {
-                navWrap.style.display = 'flex';
-                navWrap.style.flexWrap = 'nowrap';
-                navWrap.style.gap = '0.4rem';
-                var navBtns = navWrap.querySelectorAll('[data-testid="stButton"]');
-                navBtns.forEach(function(b) {
+
+            // ── 2. NAV BUTTONS: wrap both in one real flex container ──
+            var navBtn1 = null, navBtn2 = null;
+            document.querySelectorAll('[data-testid="stButton"]').forEach(function(btnWrap) {
+                var innerBtn = btnWrap.querySelector('button');
+                if (innerBtn) {
+                    var txt = innerBtn.textContent.trim();
+                    if (txt.indexOf('Pay With Confidence') !== -1) navBtn1 = btnWrap;
+                    if (txt.indexOf('Completed With Pride') !== -1) navBtn2 = btnWrap;
+                }
+            });
+            if (navBtn1 && navBtn2) {
+                var flexWrap = navBtn1.parentElement;
+                if (!flexWrap.classList.contains('hh-nav-flex')) {
+                    var newFlex = document.createElement('div');
+                    newFlex.className = 'hh-nav-flex';
+                    newFlex.style.display = 'flex';
+                    newFlex.style.flexWrap = 'nowrap';
+                    newFlex.style.gap = '8px';
+                    newFlex.style.width = '100%';
+                    navBtn1.parentElement.insertBefore(newFlex, navBtn1);
+                    newFlex.appendChild(navBtn1);
+                    newFlex.appendChild(navBtn2);
+                }
+                [navBtn1, navBtn2].forEach(function(b) {
                     b.style.flex = '1 1 0';
                     b.style.width = 'auto';
                     b.style.minWidth = '0';
+                    b.style.margin = '0';
+                    var inner = b.querySelector('button');
+                    if (inner) inner.style.width = '100%';
                 });
             }
         }
         enforceLayout();
-        new MutationObserver(enforceLayout).observe(document.body, {childList:true, subtree:true});
+        var debounced = false;
+        new MutationObserver(function() {
+            if (debounced) return;
+            debounced = true;
+            setTimeout(function() { enforceLayout(); debounced = false; }, 30);
+        }).observe(document.body, {childList: true, subtree: true});
     })();
     </script>""", unsafe_allow_html=True)
 
