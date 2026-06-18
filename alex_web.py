@@ -24,7 +24,7 @@ st.markdown("""
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
         .block-container {
-            padding: 0.5rem 1rem 0.5rem 1rem !important;
+            padding: 0.25rem 0.75rem 0.25rem 0.75rem !important;
             max-width: 100% !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
@@ -37,10 +37,10 @@ st.markdown("""
             border: 1px solid rgba(232,82,26,0.2) !important;
             border-radius: 10px !important;
             width: 100% !important;
-            min-height: 52px !important;
+            min-height: 44px !important;
             font-size: 12px !important;
             font-weight: 600 !important;
-            padding: 0.35rem 0.5rem !important;
+            padding: 0.25rem 0.5rem !important;
             line-height: 1.3 !important;
             transition: border-color 0.2s !important;
             white-space: pre-wrap !important;
@@ -58,7 +58,7 @@ st.markdown("""
         .input-wrap .stTextArea { margin: 0 !important; }
         .input-wrap .stButton {
             position: absolute !important;
-            right: 8px !important;
+            left: 8px !important;
             bottom: 8px !important;
             z-index: 10 !important;
         }
@@ -102,8 +102,8 @@ st.markdown("""
             border-radius: 12px !important;
             font-size: 14px !important;
             resize: none !important;
-            padding: 12px 50px 12px 16px !important;
-            min-height: 70px !important;
+            padding: 10px 16px 10px 50px !important;
+            min-height: 60px !important;
             font-family: sans-serif !important;
         }
         .stTextArea textarea:focus {
@@ -468,16 +468,16 @@ if st.session_state.current_section == "chat":
 
     if not st.session_state.messages:
         st.markdown("""
-            <div style="padding:0.75rem; margin-bottom:0.5rem;
+            <div style="padding:0.5rem; margin-bottom:0.4rem;
                 background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
                 border:1px solid rgba(232,82,26,0.3);
                 border-left:4px solid #E8521A;
                 border-radius:8px; text-align:center;">
-                <div style="font-size:18px; margin-bottom:0.25rem;">🔧</div>
-                <div style="font-size:14px; font-weight:700; color:#F5F0E8; margin-bottom:0.25rem;">
+                <div style="font-size:16px; margin-bottom:0.2rem;">🔧</div>
+                <div style="font-size:13px; font-weight:700; color:#F5F0E8; margin-bottom:0.2rem;">
                     Every Expert Was Once a Beginner
                 </div>
-                <div style="font-size:10px; color:#8A7E76; max-width:280px; margin:0 auto 0.4rem;">
+                <div style="font-size:10px; color:#8A7E76; max-width:280px; margin:0 auto 0.3rem;">
                     Ask me anything about your project and let's get it done together.
                 </div>
                 <div style="display:flex; justify-content:center; gap:0.75rem;">
@@ -494,7 +494,7 @@ if st.session_state.current_section == "chat":
     st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
     user_input = st.text_area(
         "question", placeholder="What project are we working on today?",
-        height=70, key="chat_input", label_visibility="collapsed"
+        height=60, key="chat_input", label_visibility="collapsed"
     )
     send = st.button("➤", key="send_btn")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -566,7 +566,8 @@ if st.session_state.current_section == "chat":
                     if (!wrap.contains(b)) {
                         wrap.appendChild(b);
                         b.style.position = 'absolute';
-                        b.style.right = '8px';
+                        b.style.left = '8px';
+                        b.style.right = 'auto';
                         b.style.bottom = '8px';
                         b.style.zIndex = '10';
                         b.style.margin = '0';
