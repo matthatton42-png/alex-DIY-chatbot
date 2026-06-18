@@ -53,36 +53,13 @@ st.markdown("""
 
 
 
-        /* ── SEND BUTTON ROW: targets only the horizontal block containing a textarea ── */
-        div[data-testid="stHorizontalBlock"]:has(textarea) {
+        /* ── ALL HORIZONTAL BLOCKS: bottom-align columns ── */
+        div[data-testid="stHorizontalBlock"] {
             align-items: flex-end !important;
             gap: 6px !important;
-            margin-top: 0.4rem !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(textarea) [data-testid="column"] {
+        div[data-testid="stHorizontalBlock"] [data-testid="column"] {
             padding: 0 !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(textarea) .stButton {
-            position: relative !important;
-            right: auto !important;
-            left: auto !important;
-            bottom: auto !important;
-            margin: 0 !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(textarea) .stButton > button {
-            background: #E8521A !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            width: 100% !important;
-            height: 60px !important;
-            min-height: 0 !important;
-            font-size: 20px !important;
-            font-weight: 400 !important;
-            padding: 0 !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(textarea) .stButton > button:hover {
-            background: #C43E0A !important;
         }
 
         /* ── BACK BUTTON ── */
@@ -509,6 +486,30 @@ if st.session_state.current_section == "chat":
             height=60, key="chat_input", label_visibility="collapsed"
         )
 
+    # Style the ➤ button orange — simple JS by text content
+    st.markdown("""<script>
+    (function(){
+        function styleArrow(){
+            document.querySelectorAll('button').forEach(function(b){
+                if(b.textContent.trim()==='➤'){
+                    b.style.background='#E8521A';
+                    b.style.color='white';
+                    b.style.border='none';
+                    b.style.borderRadius='8px';
+                    b.style.width='100%';
+                    b.style.height='60px';
+                    b.style.minHeight='0';
+                    b.style.fontSize='20px';
+                    b.style.padding='0';
+                    b.style.cursor='pointer';
+                }
+            });
+        }
+        styleArrow();
+        new MutationObserver(styleArrow).observe(document.body,{childList:true,subtree:true});
+    })();
+    </script>""", unsafe_allow_html=True)
+
     # ── Upload box (under chat input) ──
     uploaded_file = st.file_uploader(
         "photo", type=["jpg", "jpeg", "png", "webp"],
@@ -562,7 +563,6 @@ if st.session_state.current_section == "chat":
             });
         }).observe(document.body, {childList:true, subtree:true});
         </script>""", unsafe_allow_html=True)
-
     # Move the ➤ button into .input-wrap so CSS absolute positioning works
     st.markdown("""<script>
     (function() {
