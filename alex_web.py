@@ -62,6 +62,19 @@ st.markdown("""
             padding: 0 !important;
         }
 
+        /* ── CRITICAL: Streamlit auto-stacks columns under 640px (phones/app) ── */
+        /* This forces columns to stay side-by-side on every screen size */
+        @media (max-width: 640px) {
+            div[data-testid="stHorizontalBlock"] {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+            }
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+                width: auto !important;
+                min-width: 0 !important;
+            }
+        }
+
         /* ── BACK BUTTON ── */
         .back-btn .stButton > button {
             background: transparent !important;
@@ -477,7 +490,7 @@ if st.session_state.current_section == "chat":
         """, unsafe_allow_html=True)
 
     # ── Chat input — send button LEFT, textarea RIGHT ──
-    col_send, col_text = st.columns([1, 5], gap="small")
+    col_send, col_text = st.columns([1, 9], gap="small")
     with col_send:
         send = st.button("➤", key="send_btn")
     with col_text:
