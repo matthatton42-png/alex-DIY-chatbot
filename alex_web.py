@@ -62,19 +62,6 @@ st.markdown("""
             padding: 0 !important;
         }
 
-        /* ── CRITICAL: Streamlit auto-stacks columns under 640px (phones/app) ── */
-        /* This forces columns to stay side-by-side on every screen size */
-        @media (max-width: 640px) {
-            div[data-testid="stHorizontalBlock"] {
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-            }
-            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-                width: auto !important;
-                min-width: 0 !important;
-            }
-        }
-
         /* ── BACK BUTTON ── */
         .back-btn .stButton > button {
             background: transparent !important;
