@@ -490,6 +490,41 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
+    # ── Chat input (always visible, directly under banner) ──
+    st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
+    user_input = st.text_area(
+        "question", placeholder="What project are we working on today?",
+        height=70, key="chat_input", label_visibility="collapsed"
+    )
+    send = st.button("➤", key="send_btn")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── Upload box (under chat input) ──
+    uploaded_file = st.file_uploader(
+        "photo", type=["jpg", "jpeg", "png", "webp"],
+        label_visibility="collapsed", key="chat_uploader"
+    )
+
+    if uploaded_file is not None:
+        raw_bytes = uploaded_file.read()
+        encoded, override = compress_and_encode(raw_bytes)
+        media_type = get_media_type(uploaded_file.type, override)
+        st.session_state.pending_image = {
+            "data": encoded, "media_type": media_type,
+            "name": uploaded_file.name, "bytes": raw_bytes
+        }
+        st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=150)
+        st.success("✓ Photo attached! Type your question and tap ➤")
+    elif st.session_state.pending_image is None:
+        st.markdown(
+            '<p style="font-size:11px; color:#8A7E76; margin:0.1rem 0 0;">📷 Upload a photo (optional)</p>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.success("✓ Photo still attached! Type your question and tap ➤")
+
+    # ── Nav buttons (under uploader, only when no messages) ──
+    if not st.session_state.messages:
         col1, col2 = st.columns(2, gap="small")
         with col1:
             if st.button("💰  Pay With Confidence", key="nav_verify",
@@ -517,39 +552,6 @@ if st.session_state.current_section == "chat":
             });
         }).observe(document.body, {childList:true, subtree:true});
         </script>""", unsafe_allow_html=True)
-
-    uploaded_file = st.file_uploader(
-        "photo", type=["jpg", "jpeg", "png", "webp"],
-        label_visibility="collapsed", key="chat_uploader"
-    )
-
-    if uploaded_file is not None:
-        raw_bytes = uploaded_file.read()
-        encoded, override = compress_and_encode(raw_bytes)
-        media_type = get_media_type(uploaded_file.type, override)
-        st.session_state.pending_image = {
-            "data": encoded, "media_type": media_type,
-            "name": uploaded_file.name, "bytes": raw_bytes
-        }
-        st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=150)
-        st.success("✓ Photo attached! Type your question and tap ➤")
-    elif st.session_state.pending_image is None:
-        st.markdown(
-            '<p style="font-size:11px; color:#8A7E76; margin:0.1rem 0 0;">📷 Upload a photo (optional)</p>',
-            unsafe_allow_html=True
-        )
-    else:
-        st.success("✓ Photo still attached! Type your question and tap ➤")
-
-    st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
-
-    user_input = st.text_area(
-        "question", placeholder="What project are we working on today?",
-        height=70, key="chat_input", label_visibility="collapsed"
-    )
-    send = st.button("➤", key="send_btn")
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # Move the ➤ button into .input-wrap so CSS absolute positioning works
     st.markdown("""<script>
