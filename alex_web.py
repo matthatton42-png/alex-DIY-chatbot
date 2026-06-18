@@ -477,7 +477,7 @@ if st.session_state.current_section == "chat":
         """, unsafe_allow_html=True)
 
     # ── Chat input — send button LEFT, textarea RIGHT ──
-    col_send, col_text = st.columns([1, 9], gap="small")
+    col_send, col_text = st.columns([4, 6], gap="small")
     with col_send:
         send = st.button("➤", key="send_btn")
     with col_text:
