@@ -502,14 +502,14 @@ if st.session_state.current_section == "chat":
             "name": uploaded_file.name, "bytes": raw_bytes
         }
         st.image(io.BytesIO(raw_bytes), caption="📷 Photo ready!", width=150)
-        st.success("✓ Photo attached! Type your question and tap ➤")
+        st.success("✓ Photo attached! Type your question and press Enter")
     elif st.session_state.pending_image is None:
         st.markdown(
             '<p style="font-size:11px; color:#8A7E76; margin:0.1rem 0 0;">📷 Upload a photo (optional)</p>',
             unsafe_allow_html=True
         )
     else:
-        st.success("✓ Photo still attached! Type your question and tap ➤")
+        st.success("✓ Photo still attached! Type your question and press Enter")
 
     # ── Nav buttons (under uploader, only when no messages) ──
     if not st.session_state.messages:
@@ -521,16 +521,10 @@ if st.session_state.current_section == "chat":
             st.rerun()
 
     # ── LAYOUT ENFORCEMENT: real DOM manipulation, not CSS-selector guessing ──
-    # Streamlit's st.markdown() calls do NOT create real parent/child nesting
-    # with widgets rendered afterward — each markdown call is its own isolated
-    # element. So instead of hoping a CSS class wraps things correctly, this
-    # finds the ACTUAL rendered elements by their text/placeholder, physically
-    # moves them with appendChild (guaranteeing a real DOM relationship), and
-    # then applies positioning. This re-runs after every Streamlit rerender.
     st.markdown("""<script>
     (function() {
         function enforceLayout() {
-            // ── 1. SEND ARROW: move into the textarea's real container ──
+            // ── 1. SEND BUTTON: hide it, wire Enter key to trigger it instead ──
             var textareas = document.querySelectorAll('textarea');
             var targetTa = null;
             textareas.forEach(function(ta) {
@@ -538,46 +532,28 @@ if st.session_state.current_section == "chat":
                     targetTa = ta;
                 }
             });
-            if (targetTa) {
-                var taBlock = targetTa.closest('[data-testid="stTextArea"]');
-                var taParent = taBlock ? taBlock.parentElement : null;
-                if (taParent) {
-                    if (taParent.dataset.hhPositioned !== 'true') {
-                        taParent.style.position = 'relative';
-                        taParent.dataset.hhPositioned = 'true';
-                    }
-                    targetTa.style.paddingLeft = '50px';
-                    document.querySelectorAll('[data-testid="stButton"]').forEach(function(btnWrap) {
-                        var innerBtn = btnWrap.querySelector('button');
-                        if (innerBtn && innerBtn.textContent.trim() === '➤') {
-                            if (btnWrap.parentElement !== taParent) {
-                                taParent.appendChild(btnWrap);
-                            }
-                            btnWrap.style.position = 'absolute';
-                            btnWrap.style.left = '8px';
-                            btnWrap.style.right = 'auto';
-                            btnWrap.style.bottom = '8px';
-                            btnWrap.style.top = 'auto';
-                            btnWrap.style.zIndex = '10';
-                            btnWrap.style.margin = '0';
-                            btnWrap.style.width = 'auto';
-                            innerBtn.style.background = '#E8521A';
-                            innerBtn.style.color = 'white';
-                            innerBtn.style.border = 'none';
-                            innerBtn.style.borderRadius = '8px';
-                            innerBtn.style.width = '36px';
-                            innerBtn.style.height = '36px';
-                            innerBtn.style.minHeight = '0';
-                            innerBtn.style.fontSize = '18px';
-                            innerBtn.style.fontWeight = '400';
-                            innerBtn.style.padding = '0';
-                            innerBtn.style.cursor = 'pointer';
-                        }
-                    });
+            var hiddenSendBtn = null;
+            document.querySelectorAll('[data-testid="stButton"]').forEach(function(btnWrap) {
+                var innerBtn = btnWrap.querySelector('button');
+                if (innerBtn && innerBtn.textContent.trim() === '➤') {
+                    btnWrap.style.display = 'none';
+                    hiddenSendBtn = innerBtn;
                 }
+            });
+            if (targetTa && hiddenSendBtn && targetTa.dataset.hhEnterBound !== 'true') {
+                targetTa.dataset.hhEnterBound = 'true';
+                targetTa.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        var btn = document.querySelector('[data-testid="stButton"] button');
+                        document.querySelectorAll('[data-testid="stButton"] button').forEach(function(b) {
+                            if (b.textContent.trim() === '➤') { b.click(); }
+                        });
+                    }
+                });
             }
 
-            // ── 2. NAV BUTTONS: wrap both in one real flex container ──
+            // ── 2. NAV BUTTONS: wrap both in one real flex container, full width, centered text ──
             var navBtn1 = null, navBtn2 = null;
             document.querySelectorAll('[data-testid="stButton"]').forEach(function(btnWrap) {
                 var innerBtn = btnWrap.querySelector('button');
@@ -588,17 +564,29 @@ if st.session_state.current_section == "chat":
                 }
             });
             if (navBtn1 && navBtn2) {
-                var flexWrap = navBtn1.parentElement;
-                if (!flexWrap.classList.contains('hh-nav-flex')) {
+                if (!navBtn1.parentElement.classList.contains('hh-nav-flex')) {
                     var newFlex = document.createElement('div');
                     newFlex.className = 'hh-nav-flex';
                     newFlex.style.display = 'flex';
                     newFlex.style.flexWrap = 'nowrap';
                     newFlex.style.gap = '8px';
                     newFlex.style.width = '100%';
+                    newFlex.style.margin = '0';
                     navBtn1.parentElement.insertBefore(newFlex, navBtn1);
                     newFlex.appendChild(navBtn1);
                     newFlex.appendChild(navBtn2);
+
+                    // Neutralize any Streamlit-imposed padding on ancestor wrappers
+                    // so the flex row's edges truly match the banner/upload box above
+                    var anc = newFlex.parentElement;
+                    for (var i = 0; i < 4 && anc; i++) {
+                        anc.style.paddingLeft = '0px';
+                        anc.style.paddingRight = '0px';
+                        anc.style.marginLeft = '0px';
+                        anc.style.marginRight = '0px';
+                        anc.style.width = '100%';
+                        anc = anc.parentElement;
+                    }
                 }
                 [navBtn1, navBtn2].forEach(function(b) {
                     b.style.flex = '1 1 0';
@@ -606,7 +594,13 @@ if st.session_state.current_section == "chat":
                     b.style.minWidth = '0';
                     b.style.margin = '0';
                     var inner = b.querySelector('button');
-                    if (inner) inner.style.width = '100%';
+                    if (inner) {
+                        inner.style.width = '100%';
+                        inner.style.display = 'flex';
+                        inner.style.alignItems = 'center';
+                        inner.style.justifyContent = 'center';
+                        inner.style.textAlign = 'center';
+                    }
                 });
             }
         }
