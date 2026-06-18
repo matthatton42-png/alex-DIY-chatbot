@@ -53,28 +53,37 @@ st.markdown("""
 
 
 
-        /* ── SEND BUTTON: only inside input-wrap ── */
-        .input-wrap { position: relative; margin-top: 0.75rem; }
-        .input-wrap .stTextArea { margin: 0 !important; }
-        .input-wrap .stButton {
-            position: absolute !important;
-            left: 8px !important;
-            bottom: 8px !important;
-            z-index: 10 !important;
+        /* ── SEND BUTTON ROW: targets only the horizontal block containing a textarea ── */
+        div[data-testid="stHorizontalBlock"]:has(textarea) {
+            align-items: flex-end !important;
+            gap: 6px !important;
+            margin-top: 0.4rem !important;
         }
-        .input-wrap .stButton > button {
+        div[data-testid="stHorizontalBlock"]:has(textarea) [data-testid="column"] {
+            padding: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(textarea) .stButton {
+            position: relative !important;
+            right: auto !important;
+            left: auto !important;
+            bottom: auto !important;
+            margin: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(textarea) .stButton > button {
             background: #E8521A !important;
+            color: white !important;
             border: none !important;
             border-radius: 8px !important;
-            width: 36px !important;
-            height: 36px !important;
+            width: 100% !important;
+            height: 60px !important;
             min-height: 0 !important;
-            font-size: 18px !important;
+            font-size: 20px !important;
             font-weight: 400 !important;
             padding: 0 !important;
-            color: white !important;
         }
-        .input-wrap .stButton > button:hover { background: #C43E0A !important; }
+        div[data-testid="stHorizontalBlock"]:has(textarea) .stButton > button:hover {
+            background: #C43E0A !important;
+        }
 
         /* ── BACK BUTTON ── */
         .back-btn .stButton > button {
@@ -102,7 +111,7 @@ st.markdown("""
             border-radius: 12px !important;
             font-size: 14px !important;
             resize: none !important;
-            padding: 10px 16px 10px 50px !important;
+            padding: 10px 16px !important;
             min-height: 60px !important;
             font-family: sans-serif !important;
         }
@@ -490,14 +499,15 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
-    # ── Chat input (always visible, directly under banner) ──
-    st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
-    user_input = st.text_area(
-        "question", placeholder="What project are we working on today?",
-        height=60, key="chat_input", label_visibility="collapsed"
-    )
-    send = st.button("➤", key="send_btn")
-    st.markdown('</div>', unsafe_allow_html=True)
+    # ── Chat input — send button LEFT, textarea RIGHT ──
+    col_send, col_text = st.columns([1, 9], gap="small")
+    with col_send:
+        send = st.button("➤", key="send_btn")
+    with col_text:
+        user_input = st.text_area(
+            "question", placeholder="What project are we working on today?",
+            height=60, key="chat_input", label_visibility="collapsed"
+        )
 
     # ── Upload box (under chat input) ──
     uploaded_file = st.file_uploader(
