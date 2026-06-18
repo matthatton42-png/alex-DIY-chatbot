@@ -25,7 +25,8 @@ st.markdown("""
         [data-testid="stBottomBlockContainer"] { display: none !important; }
         .block-container {
             padding: 0.25rem 0.75rem 0.25rem 0.75rem !important;
-            max-width: 100% !important;
+            max-width: 560px !important;
+            margin: 0 auto !important;
         }
         [data-testid="stFileUploader"] label { display: none !important; }
 
@@ -61,6 +62,36 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"] [data-testid="column"] {
             padding: 0 !important;
         }
+
+        /* ── INPUT WRAP: arrow button sits inside bottom-left of the text box ── */
+        .input-wrap { position: relative !important; margin: 0.4rem 0 !important; }
+        .input-wrap .stTextArea { margin: 0 !important; }
+        .input-wrap .stTextArea textarea { padding-left: 50px !important; }
+        .input-wrap .stButton {
+            position: absolute !important;
+            left: 8px !important;
+            bottom: 8px !important;
+            z-index: 10 !important;
+            margin: 0 !important;
+        }
+        .input-wrap .stButton > button {
+            background: #E8521A !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            width: 36px !important;
+            height: 36px !important;
+            min-height: 0 !important;
+            font-size: 18px !important;
+            font-weight: 400 !important;
+            padding: 0 !important;
+        }
+        .input-wrap .stButton > button:hover { background: #C43E0A !important; }
+
+        /* ── NAV WRAP: two feature buttons side by side, no Streamlit columns ── */
+        .nav-wrap { display: flex !important; gap: 0.4rem !important; margin: 0 0 0.5rem 0 !important; }
+        .nav-wrap > div[data-testid="stButton"] { flex: 1 1 0 !important; width: auto !important; }
+        .nav-wrap .stButton > button { width: 100% !important; }
 
         /* ── BACK BUTTON ── */
         .back-btn .stButton > button {
@@ -476,39 +507,14 @@ if st.session_state.current_section == "chat":
             </div>
         """, unsafe_allow_html=True)
 
-    # ── Chat input — send button LEFT, textarea RIGHT ──
-    col_send, col_text = st.columns([1, 9], gap="small")
-    with col_send:
-        send = st.button("➤", key="send_btn")
-    with col_text:
-        user_input = st.text_area(
-            "question", placeholder="What project are we working on today?",
-            height=60, key="chat_input", label_visibility="collapsed"
-        )
-
-    # Style the ➤ button orange — simple JS by text content
-    st.markdown("""<script>
-    (function(){
-        function styleArrow(){
-            document.querySelectorAll('button').forEach(function(b){
-                if(b.textContent.trim()==='➤'){
-                    b.style.background='#E8521A';
-                    b.style.color='white';
-                    b.style.border='none';
-                    b.style.borderRadius='8px';
-                    b.style.width='100%';
-                    b.style.height='60px';
-                    b.style.minHeight='0';
-                    b.style.fontSize='20px';
-                    b.style.padding='0';
-                    b.style.cursor='pointer';
-                }
-            });
-        }
-        styleArrow();
-        new MutationObserver(styleArrow).observe(document.body,{childList:true,subtree:true});
-    })();
-    </script>""", unsafe_allow_html=True)
+    # ── Chat input — arrow inside bottom-left of the box (proven technique) ──
+    st.markdown('<div class="input-wrap">', unsafe_allow_html=True)
+    user_input = st.text_area(
+        "question", placeholder="What project are we working on today?",
+        height=70, key="chat_input", label_visibility="collapsed"
+    )
+    send = st.button("➤", key="send_btn")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Upload box (under chat input) ──
     uploaded_file = st.file_uploader(
@@ -536,70 +542,62 @@ if st.session_state.current_section == "chat":
 
     # ── Nav buttons (under uploader, only when no messages) ──
     if not st.session_state.messages:
-        col1, col2 = st.columns(2, gap="small")
-        with col1:
-            if st.button("💰  Pay With Confidence", key="nav_verify",
-                         use_container_width=True):
-                st.session_state.current_section = "verify"
-                st.rerun()
-        with col2:
-            if st.button("🛡️  Completed With Pride", key="nav_doc",
-                         use_container_width=True):
-                st.session_state.current_section = "document"
-                st.rerun()
+        st.markdown('<div class="nav-wrap">', unsafe_allow_html=True)
+        if st.button("💰  Pay With Confidence", key="nav_verify"):
+            st.session_state.current_section = "verify"
+            st.rerun()
+        if st.button("🛡️  Completed With Pride", key="nav_doc"):
+            st.session_state.current_section = "document"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # JS: remove Streamlit's inline column padding so right edge aligns with banner
-        st.markdown("""<script>
-        (function fixCols() {
-            document.querySelectorAll('[data-testid="column"]').forEach(function(c) {
-                c.style.paddingLeft = '0';
-                c.style.paddingRight = '0';
-            });
-        })();
-        new MutationObserver(function() {
-            document.querySelectorAll('[data-testid="column"]').forEach(function(c) {
-                c.style.paddingLeft = '0';
-                c.style.paddingRight = '0';
-            });
-        }).observe(document.body, {childList:true, subtree:true});
-        </script>""", unsafe_allow_html=True)
-    # Move the ➤ button into .input-wrap so CSS absolute positioning works
+    # ── FAILSAFE: redundant JS that re-applies positioning/sizing every render ──
+    # Backs up the CSS above in case Streamlit's DOM structure shifts on any device.
     st.markdown("""<script>
     (function() {
-        function fixSend() {
+        function enforceLayout() {
+            // Pin the send arrow inside the bottom-left of the input box
             var wrap = document.querySelector('.input-wrap');
-            if (!wrap) return;
-            var btns = document.querySelectorAll('[data-testid="stButton"]');
-            btns.forEach(function(b) {
-                var btn = b.querySelector('button');
-                if (btn && btn.textContent.trim() === '\u27a4') {
-                    if (!wrap.contains(b)) {
-                        wrap.appendChild(b);
+            if (wrap) {
+                var btns = wrap.querySelectorAll('[data-testid="stButton"]');
+                btns.forEach(function(b) {
+                    var inner = b.querySelector('button');
+                    if (inner && inner.textContent.trim() === '➤') {
                         b.style.position = 'absolute';
                         b.style.left = '8px';
                         b.style.right = 'auto';
                         b.style.bottom = '8px';
                         b.style.zIndex = '10';
                         b.style.margin = '0';
-                        var inner = b.querySelector('button');
-                        if (inner) {
-                            inner.style.background = '#E8521A';
-                            inner.style.border = 'none';
-                            inner.style.borderRadius = '8px';
-                            inner.style.width = '36px';
-                            inner.style.height = '36px';
-                            inner.style.minHeight = '0';
-                            inner.style.fontSize = '18px';
-                            inner.style.padding = '0';
-                            inner.style.color = 'white';
-                            inner.style.cursor = 'pointer';
-                        }
+                        inner.style.background = '#E8521A';
+                        inner.style.color = 'white';
+                        inner.style.border = 'none';
+                        inner.style.borderRadius = '8px';
+                        inner.style.width = '36px';
+                        inner.style.height = '36px';
+                        inner.style.minHeight = '0';
+                        inner.style.fontSize = '18px';
+                        inner.style.padding = '0';
+                        inner.style.cursor = 'pointer';
                     }
-                }
-            });
+                });
+            }
+            // Force the two feature buttons to sit side by side, equal width
+            var navWrap = document.querySelector('.nav-wrap');
+            if (navWrap) {
+                navWrap.style.display = 'flex';
+                navWrap.style.flexWrap = 'nowrap';
+                navWrap.style.gap = '0.4rem';
+                var navBtns = navWrap.querySelectorAll('[data-testid="stButton"]');
+                navBtns.forEach(function(b) {
+                    b.style.flex = '1 1 0';
+                    b.style.width = 'auto';
+                    b.style.minWidth = '0';
+                });
+            }
         }
-        fixSend();
-        new MutationObserver(fixSend).observe(document.body, {childList:true, subtree:true});
+        enforceLayout();
+        new MutationObserver(enforceLayout).observe(document.body, {childList:true, subtree:true});
     })();
     </script>""", unsafe_allow_html=True)
 
