@@ -24,23 +24,14 @@ st.markdown("""
         [data-testid="stBottom"] { display: none !important; }
         [data-testid="stBottomBlockContainer"] { display: none !important; }
 
-        /* ── CENTER EVERYTHING — vertically and horizontally on any device ──
-           .block-container is confirmed to correctly receive min-height:100vh
-           (proven by the debug border test). The repeated selector below
-           artificially boosts specificity so display:flex/justify-content
-           reliably wins over Streamlit's own internal styling, regardless
-           of which stylesheet loads last. ── */
+        /* ── HORIZONTAL CENTERING — confirmed working ── */
         html, body {
             background: #1A1612 !important;
         }
-        .block-container.block-container.block-container {
+        .block-container {
             padding: 0.5rem 0.75rem !important;
             max-width: 560px !important;
             margin: 0 auto !important;
-            min-height: 100vh !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
         }
 
         [data-testid="stFileUploader"] label { display: none !important; }
@@ -490,6 +481,7 @@ if st.session_state.current_section == "chat":
 
     if not st.session_state.messages:
         st.markdown("""
+            <div style="height:12vh;"></div>
             <div style="padding:0.5rem; margin-bottom:0.4rem;
                 background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
                 border:1px solid rgba(232,82,26,0.3);
