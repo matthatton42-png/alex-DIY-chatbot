@@ -25,11 +25,20 @@ st.markdown("""
         [data-testid="stBottomBlockContainer"] { display: none !important; }
 
         /* ── CENTER EVERYTHING — both vertically and horizontally on any device ──
-           Applied directly to .block-container since we've confirmed this exact
-           selector reliably receives our CSS (horizontal centering already works
-           here). Also fixes the white background showing below short content. ── */
-        html, body {
+           Covering every plausible container at once, since we don't know for
+           certain which one is the real containing box in this Streamlit version. ── */
+        html, body, #root, .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stAppViewContainer"] > div,
+        section.main, .main, [data-testid="stMain"] {
+            min-height: 100vh !important;
             background: #1A1612 !important;
+        }
+        [data-testid="stAppViewContainer"],
+        section.main, .main, [data-testid="stMain"] {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
         }
         .block-container {
             padding: 0.5rem 0.75rem !important;
@@ -39,6 +48,9 @@ st.markdown("""
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
+            /* TEMPORARY DEBUG MARKER — tells us if this CSS is reaching the
+               device at all. Remove this border line once confirmed. */
+            border: 8px solid red !important;
         }
 
         [data-testid="stFileUploader"] label { display: none !important; }
