@@ -307,6 +307,21 @@ def get_media_type(file_type, override=None):
     return "image/jpeg"
 
 def generate_pdf(job_info, photos):
+    # fpdf2 with Helvetica only supports Latin-1 characters.
+    # Replace any unsupported Unicode chars before writing to PDF.
+    def safe(text):
+        return (str(text)
+                .replace("\u2014", "-")   # em dash —
+                .replace("\u2013", "-")   # en dash –
+                .replace("\u2018", "'")   # left single quote
+                .replace("\u2019", "'")   # right single quote
+                .replace("\u201C", '"')   # left double quote
+                .replace("\u201D", '"')   # right double quote
+                .replace("\u2022", "*")   # bullet
+                .replace("\u00e9", "e")   # é
+                .replace("\u00e8", "e")   # è
+                .replace("\u00e0", "a")   # à
+                .encode("latin-1", errors="replace").decode("latin-1"))
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_margins(15, 15, 15)
@@ -330,7 +345,7 @@ def generate_pdf(job_info, photos):
     pdf.set_xy(15, 36)
     pdf.set_text_color(245, 240, 232)
     pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(0, 5, "Completed With Pride — Job Documentation Report", ln=True)
+    pdf.cell(0, 5, safe("Completed With Pride — Job Documentation Report"), ln=True)
     pdf.set_xy(15, 43)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(138, 126, 118)
@@ -357,7 +372,7 @@ def generate_pdf(job_info, photos):
         pdf.cell(55, 7, label + ":", ln=False)
         pdf.set_text_color(26, 22, 18)
         pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 7, str(value), ln=True)
+        pdf.cell(0, 7, safe(str(value)), ln=True)
         pdf.set_font("Helvetica", "", 10)
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 13)
@@ -373,12 +388,12 @@ def generate_pdf(job_info, photos):
         pdf.set_xy(15, 5)
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(255, 255, 255)
-        pdf.cell(0, 8, f"STAGE {i}: {photo['stage'].upper()}", ln=True)
+        pdf.cell(0, 8, safe(f"STAGE {i}: {photo['stage'].upper()}"), ln=True)
         pdf.set_xy(15, 22)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(100, 100, 100)
-        pdf.cell(60, 5, f"Timestamp: {photo['timestamp']}", ln=False)
-        pdf.cell(0, 5, f"Job: {job_info.get('job_name', '')}  |  Type: {job_info.get('job_type', '')}", ln=True)
+        pdf.cell(60, 5, safe(f"Timestamp: {photo['timestamp']}"), ln=False)
+        pdf.cell(0, 5, safe(f"Job: {job_info.get('job_name', '')}  |  Type: {job_info.get('job_type', '')}"), ln=True)
         try:
             img_bytes = photo["bytes"]
             img = Image.open(io.BytesIO(img_bytes))
@@ -410,7 +425,7 @@ def generate_pdf(job_info, photos):
         pdf.ln(3)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(60, 60, 60)
-        pdf.multi_cell(0, 5, photo.get("analysis", "No analysis available."))
+        pdf.multi_cell(0, 5, safe(photo.get("analysis", "No analysis available.")))
         pdf.set_y(-20)
         pdf.set_draw_color(200, 200, 200)
         pdf.line(15, pdf.get_y(), 195, pdf.get_y())
