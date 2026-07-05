@@ -799,7 +799,7 @@ if st.session_state.current_section == "chat":
     # ── Chat input — native HTML form, Enter submits, no arrow needed ──
     with st.form(key="chat_form", clear_on_submit=True):
         user_input = st.text_input(
-            "question", placeholder="What project are we working on today?",
+            "question", placeholder="Fix It Yourself: Let's get started!",
             key="chat_input", label_visibility="collapsed"
         )
         send = st.form_submit_button("Send")
