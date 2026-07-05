@@ -21,19 +21,63 @@ try:
 except Exception:
     pass
 
+# ── Cookie manager for persistent sign-in ──
+_cookie_mgr = None
+try:
+    import extra_streamlit_components as stx
+    _cookie_mgr = stx.CookieManager(key="hh_auth_cookies")
+except Exception:
+    pass
+
+def _get_cookie(name):
+    try:
+        return _cookie_mgr.get(name) if _cookie_mgr else None
+    except: return None
+
+def _set_cookie(name, value, days=30):
+    try:
+        if _cookie_mgr:
+            expires = datetime.now().replace(
+                year=datetime.now().year + (1 if datetime.now().month > 11 else 0),
+                month=(datetime.now().month % 12) + (0 if datetime.now().month < 12 else -11)
+            )
+            _cookie_mgr.set(name, value, expires_at=expires)
+    except: pass
+
+def _del_cookie(name):
+    try:
+        if _cookie_mgr: _cookie_mgr.delete(name)
+    except: pass
+
 # ── Auth helper functions ──
 def _restore_session():
-    """Restore Supabase auth session from stored tokens on every rerun."""
-    if not DB_ENABLED or "sb_access_token" not in st.session_state:
+    """Restore Supabase auth session — first from session_state, then from cookie."""
+    if not DB_ENABLED:
         return
-    try:
-        db.auth.set_session(
-            st.session_state.sb_access_token,
-            st.session_state.sb_refresh_token
-        )
-    except Exception:
-        for k in ["sb_access_token","sb_refresh_token","sb_user_id","sb_user_email","sb_current_session"]:
-            st.session_state.pop(k, None)
+    # Fast path — session state already has tokens from this browser session
+    if "sb_access_token" in st.session_state:
+        try:
+            db.auth.set_session(
+                st.session_state.sb_access_token,
+                st.session_state.sb_refresh_token
+            )
+            return
+        except Exception:
+            for k in ["sb_access_token","sb_refresh_token","sb_user_id","sb_user_email","sb_current_session"]:
+                st.session_state.pop(k, None)
+    # Slow path — try to restore from persistent cookie (survives page reload / app restart)
+    if "sb_user_email" not in st.session_state:
+        refresh_token = _get_cookie("hh_rt")
+        if refresh_token:
+            try:
+                res = db.auth.refresh_session(refresh_token)
+                st.session_state.sb_access_token  = res.session.access_token
+                st.session_state.sb_refresh_token = res.session.refresh_token
+                st.session_state.sb_user_id       = res.user.id
+                st.session_state.sb_user_email    = res.user.email
+                _set_cookie("hh_rt", res.session.refresh_token)
+            except Exception:
+                _del_cookie("hh_rt")
 
 def get_user():
     if not DB_ENABLED or "sb_user_email" not in st.session_state:
@@ -46,6 +90,7 @@ def do_sign_in(email, password):
     st.session_state.sb_refresh_token = res.session.refresh_token
     st.session_state.sb_user_id       = res.user.id
     st.session_state.sb_user_email    = res.user.email
+    _set_cookie("hh_rt", res.session.refresh_token, days=30)
     return True
 
 def do_sign_up(email, password):
@@ -56,6 +101,7 @@ def do_sign_out():
     if db:
         try: db.auth.sign_out()
         except: pass
+    _del_cookie("hh_rt")
     for k in ["sb_access_token","sb_refresh_token","sb_user_id","sb_user_email",
               "sb_current_session","sb_auth_mode"]:
         st.session_state.pop(k, None)
