@@ -700,17 +700,43 @@ elif st.session_state.current_section == "projects":
                 <span style="color:#E8521A;">✓</span> Supports 8 major project types
             </div>
         </div>
-        <a href="https://handy-projects-ydshcuvzcxmsqs8ygkhvxi.streamlit.app"
-           target="_top"
-           style="display:block; background:#E8521A; color:white; text-align:center;
-                  padding:14px; border-radius:10px; text-decoration:none;
-                  font-size:14px; font-weight:700; letter-spacing:0.5px;">
-            🏗️ Open Project Manager →
-        </a>
-        <p style="font-size:10px; color:#8A7E76; text-align:center; margin-top:0.5rem;">
-            Opens in full screen · Free · No account required
-        </p>
     """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+            [data-testid="stLinkButton"] a {
+                background: #E8521A !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 10px !important;
+                width: 100% !important;
+                min-height: 52px !important;
+                font-size: 14px !important;
+                font-weight: 700 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-decoration: none !important;
+                letter-spacing: 0.5px !important;
+            }
+            [data-testid="stLinkButton"] a:hover {
+                background: #C43E0A !important;
+                color: white !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.link_button(
+        "🏗️  Open Project Manager →",
+        "https://handy-projects-ydshcuvzcxmsqs8ygkhvxi.streamlit.app",
+        use_container_width=True
+    )
+
+    st.markdown(
+        '<p style="font-size:10px; color:#8A7E76; text-align:center; margin-top:0.4rem;">'
+        'Opens in full screen · Free · No account required</p>',
+        unsafe_allow_html=True
+    )
 
 # ══════════════════════════════════════════════════════════
 # SECTION: PAY WITH CONFIDENCE
