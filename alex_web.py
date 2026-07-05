@@ -247,6 +247,20 @@ st.markdown("""
             color: #F5F0E8 !important;
         }
         /* ── AUTH UI ── */
+        .account-bar div[data-testid="stHorizontalBlock"] {
+            gap: 8px !important;
+            flex-wrap: nowrap !important;
+        }
+        .account-bar div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+            max-width: 50% !important;
+            padding: 0 !important;
+        }
+        .account-bar div[data-testid="stHorizontalBlock"] > div[data-testid="column"] .stButton > button {
+            width: 100% !important;
+            font-size: 11px !important;
+        }
         [data-testid="stLinkButton"] a {
             background: #E8521A !important; color: white !important;
             border: none !important; border-radius: 10px !important;
@@ -650,6 +664,7 @@ if st.session_state.current_section == "chat":
         # ── Account bar — very top of window ──
         user = get_user()
         if user:
+            st.markdown('<div class="account-bar">', unsafe_allow_html=True)
             st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.3rem; text-align:center;">👤 {user["email"]}</p>', unsafe_allow_html=True)
             col1, col2 = st.columns(2)
             with col1:
@@ -660,6 +675,7 @@ if st.session_state.current_section == "chat":
                 if st.button("Sign Out", key="sign_out_top", use_container_width=True):
                     do_sign_out()
                     st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
         elif DB_ENABLED:
             st.markdown('<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.3rem; text-align:center;">💾 Sign in to save your history & projects</p>', unsafe_allow_html=True)
             if st.button("👤  Sign In / Create Account", key="nav_auth_top", use_container_width=True):
