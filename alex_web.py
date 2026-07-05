@@ -710,6 +710,12 @@ _qp = st.query_params
 if _qp.get("section") == "auth" and st.session_state.current_section == "chat" and not get_user():
     st.session_state.current_section = "auth"
 
+# ── Handle sign-out triggered from website dropdown ──
+if _qp.get("section") == "signout" and get_user():
+    do_sign_out()
+    st.query_params.clear()
+    st.rerun()
+
 # ── Broadcast auth state to parent window on every render ──
 # Only broadcasts when signed in — never clears on empty (cookie manager
 # may not have initialized yet on first render, causing false sign-outs).
