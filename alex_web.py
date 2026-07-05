@@ -2,11 +2,109 @@ import anthropic
 import streamlit as st
 import base64
 import io
+import json
 import os
 import tempfile
 from datetime import datetime
 from PIL import Image
 from fpdf import FPDF
+
+# ── Supabase setup (gracefully disabled if not configured) ──
+DB_ENABLED = False
+db = None
+try:
+    from supabase import create_client
+    _sb_url = st.secrets["SUPABASE_URL"]
+    _sb_key = st.secrets["SUPABASE_KEY"]
+    db = create_client(_sb_url, _sb_key)
+    DB_ENABLED = True
+except Exception:
+    pass
+
+# ── Auth helper functions ──
+def _restore_session():
+    """Restore Supabase auth session from stored tokens on every rerun."""
+    if not DB_ENABLED or "sb_access_token" not in st.session_state:
+        return
+    try:
+        db.auth.set_session(
+            st.session_state.sb_access_token,
+            st.session_state.sb_refresh_token
+        )
+    except Exception:
+        for k in ["sb_access_token","sb_refresh_token","sb_user_id","sb_user_email","sb_current_session"]:
+            st.session_state.pop(k, None)
+
+def get_user():
+    if not DB_ENABLED or "sb_user_email" not in st.session_state:
+        return None
+    return {"id": st.session_state.sb_user_id, "email": st.session_state.sb_user_email}
+
+def do_sign_in(email, password):
+    res = db.auth.sign_in_with_password({"email": email.strip(), "password": password})
+    st.session_state.sb_access_token  = res.session.access_token
+    st.session_state.sb_refresh_token = res.session.refresh_token
+    st.session_state.sb_user_id       = res.user.id
+    st.session_state.sb_user_email    = res.user.email
+    return True
+
+def do_sign_up(email, password):
+    res = db.auth.sign_up({"email": email.strip(), "password": password})
+    return res
+
+def do_sign_out():
+    if db:
+        try: db.auth.sign_out()
+        except: pass
+    for k in ["sb_access_token","sb_refresh_token","sb_user_id","sb_user_email",
+              "sb_current_session","sb_auth_mode"]:
+        st.session_state.pop(k, None)
+
+# ── Chat persistence helpers ──
+def start_chat_session(first_message):
+    user = get_user()
+    if not user: return None
+    try:
+        title = first_message[:60] if first_message else "Conversation"
+        res = db.table("chat_sessions").insert({
+            "user_id": user["id"], "title": title
+        }).execute()
+        return res.data[0]["id"] if res.data else None
+    except: return None
+
+def save_message(session_id, role, content):
+    if not session_id: return
+    try:
+        text = content if isinstance(content, str) else \
+               " ".join(b.get("text","") for b in content if isinstance(b, dict) and b.get("type")=="text")
+        db.table("chat_messages").insert({
+            "session_id": session_id, "role": role, "content": text
+        }).execute()
+    except: pass
+
+def load_history():
+    user = get_user()
+    if not user: return []
+    try:
+        res = db.table("chat_sessions").select("*") \
+                .order("updated_at", desc=True).limit(30).execute()
+        return res.data or []
+    except: return []
+
+def load_session_msgs(session_id):
+    try:
+        res = db.table("chat_messages").select("*") \
+                .eq("session_id", session_id).order("created_at").execute()
+        return [{"role": m["role"], "content": m["content"]} for m in (res.data or [])]
+    except: return []
+
+def delete_session(session_id):
+    try:
+        db.table("chat_sessions").delete().eq("id", session_id).execute()
+    except: pass
+
+_restore_session()
+
 
 st.set_page_config(
     page_title="Handy Helper - DIY Services Assistant",
@@ -148,6 +246,16 @@ st.markdown("""
             border-color: rgba(232,82,26,0.3) !important;
             color: #F5F0E8 !important;
         }
+        /* ── AUTH UI ── */
+        [data-testid="stLinkButton"] a {
+            background: #E8521A !important; color: white !important;
+            border: none !important; border-radius: 10px !important;
+            width: 100% !important; min-height: 52px !important;
+            font-size: 14px !important; font-weight: 700 !important;
+            display: flex !important; align-items: center !important;
+            justify-content: center !important; text-decoration: none !important;
+        }
+        [data-testid="stLinkButton"] a:hover { background: #C43E0A !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -514,6 +622,10 @@ if "job_started" not in st.session_state:
     st.session_state.job_started = False
 if "hw_analysis" not in st.session_state:
     st.session_state.hw_analysis = None
+if "sb_current_session" not in st.session_state:
+    st.session_state.sb_current_session = None
+if "sb_auth_mode" not in st.session_state:
+    st.session_state.sb_auth_mode = "signin"
 
 # ══════════════════════════════════════════════════════════
 # SECTION: AI CHAT
@@ -598,6 +710,28 @@ if st.session_state.current_section == "chat":
             st.session_state.current_section = "document"
             st.rerun()
 
+        # ── Account bar ──
+        st.markdown('<div style="border-top:1px solid rgba(232,82,26,0.15); margin-top:0.5rem; padding-top:0.5rem;">', unsafe_allow_html=True)
+        user = get_user()
+        if user:
+            col1, col2 = st.columns([5, 2])
+            with col1:
+                st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.3rem 0;">👤 {user["email"]}</p>', unsafe_allow_html=True)
+            with col2:
+                if st.button("Sign Out", key="sign_out_btn"):
+                    do_sign_out()
+                    st.rerun()
+            if st.button("📜  Chat History", key="nav_history", use_container_width=True):
+                st.session_state.current_section = "history"
+                st.rerun()
+        else:
+            if DB_ENABLED:
+                st.markdown('<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.4rem; text-align:center;">💾 Sign in to save chat history & projects</p>', unsafe_allow_html=True)
+                if st.button("Sign In / Create Account", key="nav_auth", use_container_width=True):
+                    st.session_state.current_section = "auth"
+                    st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
         pending = st.session_state.pending_image
@@ -614,6 +748,12 @@ if st.session_state.current_section == "chat":
         with st.chat_message("user"):
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": display_content})
+
+        # ── Create or reuse DB session for this conversation ──
+        if DB_ENABLED and get_user():
+            if not st.session_state.sb_current_session:
+                st.session_state.sb_current_session = start_chat_session(prompt)
+            save_message(st.session_state.sb_current_session, "user", prompt)
         conversation = []
         for msg in st.session_state.messages[:-1]:
             if isinstance(msg["content"], list):
@@ -652,8 +792,151 @@ if st.session_state.current_section == "chat":
                     reply = f"Something went wrong: {e}"
             st.markdown(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
+            # ── Save assistant reply to DB ──
+            if DB_ENABLED and get_user():
+                save_message(st.session_state.sb_current_session, "assistant", reply)
         st.session_state.pending_image = None
         st.rerun()
+
+# ══════════════════════════════════════════════════════════
+# SECTION: AUTH (Sign In / Create Account)
+# ══════════════════════════════════════════════════════════
+elif st.session_state.current_section == "auth":
+
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("← Back to Chat", key="back_auth"):
+        st.session_state.current_section = "chat"
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style="padding:1rem; margin-bottom:1rem;
+            background:linear-gradient(135deg,#2C2520,#1A1612);
+            border:1px solid rgba(232,82,26,0.3);
+            border-left:4px solid #E8521A; border-radius:8px;">
+            <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.3rem;">
+                👤 Your Handy Helper Account
+            </div>
+            <div style="font-size:12px; color:#8A7E76;">
+                Create a free account to save your chat history and projects
+                across all your devices. The app is always free — an account
+                just gives you a memory.
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    mode = st.session_state.get("sb_auth_mode", "signin")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Sign In", key="mode_signin",
+                     use_container_width=True,
+                     type="primary" if mode == "signin" else "secondary"):
+            st.session_state.sb_auth_mode = "signin"
+            st.rerun()
+    with col2:
+        if st.button("Create Account", key="mode_signup",
+                     use_container_width=True,
+                     type="primary" if mode == "signup" else "secondary"):
+            st.session_state.sb_auth_mode = "signup"
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    auth_email = st.text_input("Email address", key="auth_email", placeholder="you@email.com")
+    auth_pass  = st.text_input("Password", key="auth_pass", type="password",
+                                placeholder="Minimum 6 characters")
+
+    if mode == "signin":
+        if st.button("Sign In →", key="do_signin", use_container_width=True):
+            if not auth_email or not auth_pass:
+                st.error("Please enter your email and password.")
+            else:
+                try:
+                    do_sign_in(auth_email, auth_pass)
+                    st.success("Signed in! Loading your history...")
+                    st.session_state.current_section = "chat"
+                    st.session_state.sb_current_session = None
+                    st.rerun()
+                except Exception as e:
+                    st.error("Sign in failed — check your email and password.")
+    else:
+        auth_pass2 = st.text_input("Confirm password", key="auth_pass2", type="password")
+        if st.button("Create Account →", key="do_signup", use_container_width=True):
+            if not auth_email or not auth_pass:
+                st.error("Please enter your email and password.")
+            elif auth_pass != auth_pass2:
+                st.error("Passwords don't match.")
+            elif len(auth_pass) < 6:
+                st.error("Password must be at least 6 characters.")
+            else:
+                try:
+                    res = do_sign_up(auth_email, auth_pass)
+                    if res.user:
+                        st.success("Account created! Check your email to confirm, then sign in.")
+                        st.session_state.sb_auth_mode = "signin"
+                        st.rerun()
+                    else:
+                        st.error("Something went wrong. Please try again.")
+                except Exception as e:
+                    st.error(f"Could not create account: {e}")
+
+# ══════════════════════════════════════════════════════════
+# SECTION: CHAT HISTORY
+# ══════════════════════════════════════════════════════════
+elif st.session_state.current_section == "history":
+
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("← Back to Chat", key="back_history"):
+        st.session_state.current_section = "chat"
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    user = get_user()
+    if not user:
+        st.info("Sign in to view your chat history.")
+    else:
+        st.markdown(f"""
+            <div style="padding:0.75rem 1rem; margin-bottom:1rem;
+                background:linear-gradient(135deg,#2C2520,#1A1612);
+                border:1px solid rgba(232,82,26,0.3);
+                border-left:4px solid #E8521A; border-radius:8px;">
+                <div style="font-size:14px; font-weight:700; color:#F5F0E8;">📜 Chat History</div>
+                <div style="font-size:11px; color:#8A7E76; margin-top:2px;">Signed in as {user['email']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("➕  Start New Conversation", key="new_convo", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.sb_current_session = None
+            st.session_state.current_section = "chat"
+            st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        history = load_history()
+
+        if not history:
+            st.markdown('<p style="font-size:13px; color:#8A7E76; text-align:center;">No conversations saved yet.<br>Start chatting and your history will appear here.</p>', unsafe_allow_html=True)
+        else:
+            for session in history:
+                ts = session.get("updated_at","")[:10]
+                col1, col2 = st.columns([7, 2])
+                with col1:
+                    st.markdown(f"""
+                        <div style="background:#2C2520; border:1px solid rgba(232,82,26,0.15);
+                            border-radius:8px; padding:0.6rem 0.75rem; margin-bottom:4px;">
+                            <div style="font-size:13px; color:#F5F0E8; font-weight:500;">{session.get('title','Conversation')[:50]}</div>
+                            <div style="font-size:10px; color:#8A7E76; margin-top:2px;">{ts}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    if st.button("Open", key=f"open_sess_{session['id']}"):
+                        msgs = load_session_msgs(session["id"])
+                        st.session_state.messages = msgs
+                        st.session_state.sb_current_session = session["id"]
+                        st.session_state.current_section = "chat"
+                        st.rerun()
+                    if st.button("🗑️", key=f"del_sess_{session['id']}"):
+                        delete_session(session["id"])
+                        st.rerun()
 
 # ══════════════════════════════════════════════════════════
 # SECTION: PROJECT MANAGER
