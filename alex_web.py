@@ -103,6 +103,7 @@ def do_sign_out():
         try: db.auth.sign_out()
         except: pass
     _del_cookie("hh_rt")
+    st.session_state["sb_did_sign_out"] = True
     for k in ["sb_access_token","sb_refresh_token","sb_user_id","sb_user_email",
               "sb_current_session","sb_auth_mode"]:
         st.session_state.pop(k, None)
@@ -698,17 +699,28 @@ if _qp.get("section") == "auth" and st.session_state.current_section == "chat" a
     st.session_state.current_section = "auth"
 
 # ── Broadcast auth state to parent window on every render ──
-# chat.html (on handyhelper.company) receives this and stores in localStorage.
-# index.html (same domain) reads localStorage to update the nav with logged-in user.
+# Only broadcasts when signed in — never clears on empty (cookie manager
+# may not have initialized yet on first render, causing false sign-outs).
+# Explicit sign-out is handled separately via sb_did_sign_out flag.
 _broadcast_email = get_user()["email"] if get_user() else ""
-components.html(f"""<script>
-try {{
-    window.top.postMessage({{
-        action: 'hhUserInfo',
-        email: '{_broadcast_email}'
-    }}, '*');
-}} catch(e) {{}}
-</script>""", height=0)
+_did_sign_out = st.session_state.pop("sb_did_sign_out", False)
+
+if _broadcast_email:
+    components.html(f"""<script>
+    (function() {{
+        var msg = {{action:'hhUserInfo', email:'{_broadcast_email}'}};
+        try {{ window.top.postMessage(msg, '*'); }} catch(e) {{}}
+        try {{ window.parent.postMessage(msg, '*'); }} catch(e) {{}}
+    }})();
+    </script>""", height=1)
+elif _did_sign_out:
+    components.html("""<script>
+    (function() {
+        var msg = {action:'hhSignOut'};
+        try { window.top.postMessage(msg, '*'); } catch(e) {}
+        try { window.parent.postMessage(msg, '*'); } catch(e) {}
+    })();
+    </script>""", height=1)
 
 # ══════════════════════════════════════════════════════════
 # SECTION: AI CHAT
