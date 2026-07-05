@@ -153,6 +153,18 @@ def delete_session(session_id):
 
 _restore_session()
 
+# ── Cookie manager timing fix ──
+# extra-streamlit-components needs one render cycle to initialize before
+# cookies are readable. If the user isn't signed in after the first restore
+# attempt, trigger one silent rerun so the cookie can load properly.
+# The flag prevents an infinite rerun loop — only fires once per app load.
+if not get_user() and DB_ENABLED and _cookie_mgr is not None:
+    if not st.session_state.get("_cookie_rerun_done"):
+        st.session_state["_cookie_rerun_done"] = True
+        st.rerun()
+if get_user():
+    st.session_state.pop("_cookie_rerun_done", None)
+
 
 st.set_page_config(
     page_title="Handy Helper - DIY Services Assistant",
