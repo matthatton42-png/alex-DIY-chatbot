@@ -642,8 +642,28 @@ if st.session_state.current_section == "chat":
                 st.markdown(message["content"])
 
     if not st.session_state.messages:
+        # ── Account bar — very top of window ──
+        user = get_user()
+        if user:
+            col1, col2, col3 = st.columns([4, 2, 2])
+            with col1:
+                st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.3rem 0;">👤 {user["email"]}</p>', unsafe_allow_html=True)
+            with col2:
+                if st.button("📜 History", key="sign_top_history"):
+                    st.session_state.current_section = "history"
+                    st.rerun()
+            with col3:
+                if st.button("Sign Out", key="sign_out_top"):
+                    do_sign_out()
+                    st.rerun()
+        elif DB_ENABLED:
+            st.markdown('<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.3rem; text-align:center;">💾 Sign in to save your history & projects</p>', unsafe_allow_html=True)
+            if st.button("👤  Sign In / Create Account", key="nav_auth_top", use_container_width=True):
+                st.session_state.current_section = "auth"
+                st.rerun()
+
         st.markdown("""
-            <div style="height:8vh;"></div>
+            <div style="height:6vh;"></div>
             <div style="padding:0.5rem; margin-bottom:0.4rem;
                 background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
                 border:1px solid rgba(232,82,26,0.3);
@@ -709,28 +729,6 @@ if st.session_state.current_section == "chat":
         if st.button("🚐👋  Completed With Pride", key="nav_doc", use_container_width=True):
             st.session_state.current_section = "document"
             st.rerun()
-
-        # ── Account bar ──
-        st.markdown('<div style="border-top:1px solid rgba(232,82,26,0.15); margin-top:0.5rem; padding-top:0.5rem;">', unsafe_allow_html=True)
-        user = get_user()
-        if user:
-            col1, col2 = st.columns([5, 2])
-            with col1:
-                st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.3rem 0;">👤 {user["email"]}</p>', unsafe_allow_html=True)
-            with col2:
-                if st.button("Sign Out", key="sign_out_btn"):
-                    do_sign_out()
-                    st.rerun()
-            if st.button("📜  Chat History", key="nav_history", use_container_width=True):
-                st.session_state.current_section = "history"
-                st.rerun()
-        else:
-            if DB_ENABLED:
-                st.markdown('<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.4rem; text-align:center;">💾 Sign in to save chat history & projects</p>', unsafe_allow_html=True)
-                if st.button("Sign In / Create Account", key="nav_auth", use_container_width=True):
-                    st.session_state.current_section = "auth"
-                    st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
