@@ -531,7 +531,7 @@ if st.session_state.current_section == "chat":
 
     if not st.session_state.messages:
         st.markdown("""
-            <div style="height:12vh;"></div>
+            <div style="height:8vh;"></div>
             <div style="padding:0.5rem; margin-bottom:0.4rem;
                 background:linear-gradient(135deg,#2C2520 0%,#1A1612 100%);
                 border:1px solid rgba(232,82,26,0.3);
@@ -588,6 +588,9 @@ if st.session_state.current_section == "chat":
 
     # ── Nav buttons (under uploader, only when no messages) ──
     if not st.session_state.messages:
+        if st.button("🗓️  Project Manager", key="nav_projects", use_container_width=True):
+            st.session_state.current_section = "projects"
+            st.rerun()
         if st.button("🏠👋  Pay With Confidence", key="nav_verify", use_container_width=True):
             st.session_state.current_section = "verify"
             st.rerun()
@@ -651,6 +654,63 @@ if st.session_state.current_section == "chat":
             st.session_state.messages.append({"role": "assistant", "content": reply})
         st.session_state.pending_image = None
         st.rerun()
+
+# ══════════════════════════════════════════════════════════
+# SECTION: PROJECT MANAGER
+# ══════════════════════════════════════════════════════════
+elif st.session_state.current_section == "projects":
+
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("← Back to Chat", key="back_projects"):
+        st.session_state.current_section = "chat"
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style="padding:1rem; margin-bottom:1rem;
+            background:linear-gradient(135deg,#2C2520,#1A1612);
+            border:1px solid rgba(232,82,26,0.3);
+            border-left:4px solid #E8521A; border-radius:8px;">
+            <div style="font-size:15px; font-weight:700; color:#F5F0E8; margin-bottom:0.3rem;">
+                🗓️ Project Manager
+            </div>
+            <div style="font-size:12px; color:#8A7E76;">
+                Plan and track your entire renovation from pre-construction
+                through every phase to final completion — with AI guidance
+                at every step.
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; font-size:13px; color:#8A7E76;">
+                <span style="color:#E8521A;">✓</span> AI-generated contractor questions before work begins
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; font-size:13px; color:#8A7E76;">
+                <span style="color:#E8521A;">✓</span> Phase-by-phase tracking with notes and photos
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; font-size:13px; color:#8A7E76;">
+                <span style="color:#E8521A;">✓</span> Budget tracker — estimated vs actual
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; font-size:13px; color:#8A7E76;">
+                <span style="color:#E8521A;">✓</span> Full PDF project report export
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; font-size:13px; color:#8A7E76;">
+                <span style="color:#E8521A;">✓</span> Supports 8 major project types
+            </div>
+        </div>
+        <a href="https://handy-projects-ydshcuvzcxmsqs8ygkhvxi.streamlit.app"
+           target="_top"
+           style="display:block; background:#E8521A; color:white; text-align:center;
+                  padding:14px; border-radius:10px; text-decoration:none;
+                  font-size:14px; font-weight:700; letter-spacing:0.5px;">
+            🏗️ Open Project Manager →
+        </a>
+        <p style="font-size:10px; color:#8A7E76; text-align:center; margin-top:0.5rem;">
+            Opens in full screen · Free · No account required
+        </p>
+    """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
 # SECTION: PAY WITH CONFIDENCE
