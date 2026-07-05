@@ -627,6 +627,11 @@ if "sb_current_session" not in st.session_state:
 if "sb_auth_mode" not in st.session_state:
     st.session_state.sb_auth_mode = "signin"
 
+# ── Auto-navigate to auth if linked from website Sign In button ──
+_qp = st.query_params
+if _qp.get("section") == "auth" and st.session_state.current_section == "chat":
+    st.session_state.current_section = "auth"
+
 # ══════════════════════════════════════════════════════════
 # SECTION: AI CHAT
 # ══════════════════════════════════════════════════════════
