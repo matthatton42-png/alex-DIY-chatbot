@@ -791,6 +791,13 @@ if st.session_state.current_section == "chat":
         if st.button("🚐👋  Completed With Pride", key="nav_doc", use_container_width=True):
             st.session_state.current_section = "document"
             st.rerun()
+        st.markdown(
+            '<div style="text-align:center; margin-top:0.4rem;">'
+            '<a href="https://handyhelper.company" target="_top" '
+            'style="font-size:11px; color:#8A7E76; text-decoration:none;">'
+            '← handyhelper.company</a></div>',
+            unsafe_allow_html=True
+        )
 
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
@@ -864,9 +871,22 @@ if st.session_state.current_section == "chat":
 elif st.session_state.current_section == "auth":
 
     st.markdown('<div class="back-btn">', unsafe_allow_html=True)
-    if st.button("← Back to Chat", key="back_auth"):
-        st.session_state.current_section = "chat"
-        st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("← Back to Chat", key="back_auth"):
+            st.query_params.clear()
+            st.session_state.current_section = "chat"
+            st.rerun()
+    with col2:
+        st.markdown(
+            '<a href="https://handyhelper.company" target="_top" '
+            'style="display:flex; align-items:center; justify-content:center; '
+            'height:38px; background:#2C2520; color:#8A7E76; font-size:12px; '
+            'text-decoration:none; border:1px solid rgba(232,82,26,0.25); '
+            'border-radius:8px; margin-top:4px;">'
+            '🌐 Back to Website</a>',
+            unsafe_allow_html=True
+        )
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("""
