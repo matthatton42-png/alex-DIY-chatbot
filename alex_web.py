@@ -824,19 +824,16 @@ elif st.session_state.current_section == "auth":
     """, unsafe_allow_html=True)
 
     mode = st.session_state.get("sb_auth_mode", "signin")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Sign In", key="mode_signin",
-                     use_container_width=True,
-                     type="primary" if mode == "signin" else "secondary"):
-            st.session_state.sb_auth_mode = "signin"
-            st.rerun()
-    with col2:
-        if st.button("Create Account", key="mode_signup",
-                     use_container_width=True,
-                     type="primary" if mode == "signup" else "secondary"):
-            st.session_state.sb_auth_mode = "signup"
-            st.rerun()
+    if st.button("Sign In", key="mode_signin",
+                 use_container_width=True,
+                 type="primary" if mode == "signin" else "secondary"):
+        st.session_state.sb_auth_mode = "signin"
+        st.rerun()
+    if st.button("Create Account", key="mode_signup",
+                 use_container_width=True,
+                 type="primary" if mode == "signup" else "secondary"):
+        st.session_state.sb_auth_mode = "signup"
+        st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     auth_email = st.text_input("Email address", key="auth_email", placeholder="you@email.com")
