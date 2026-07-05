@@ -1,5 +1,6 @@
 import anthropic
 import streamlit as st
+import streamlit.components.v1 as components
 import base64
 import io
 import json
@@ -791,13 +792,18 @@ if st.session_state.current_section == "chat":
         if st.button("🚐👋  Completed With Pride", key="nav_doc", use_container_width=True):
             st.session_state.current_section = "document"
             st.rerun()
-        st.markdown(
-            '<div style="text-align:center; margin-top:0.4rem;">'
-            '<a href="https://handyhelper.company" target="_top" '
-            'style="font-size:11px; color:#8A7E76; text-decoration:none;">'
-            '← handyhelper.company</a></div>',
-            unsafe_allow_html=True
-        )
+        components.html("""
+        <script>
+        function goHome() { window.top.location.href = 'https://handyhelper.company'; }
+        </script>
+        <button onclick="goHome()" style="
+            width:100%; height:40px; margin-top:6px; cursor:pointer;
+            background:#2C2520; color:#8A7E76; font-size:12px; font-weight:500;
+            border:1px solid rgba(232,82,26,0.2); border-radius:10px;
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+            🌐 &nbsp;handyhelper.company
+        </button>
+        """, height=54)
 
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
@@ -878,15 +884,18 @@ elif st.session_state.current_section == "auth":
             st.session_state.current_section = "chat"
             st.rerun()
     with col2:
-        st.markdown(
-            '<a href="https://handyhelper.company" target="_top" '
-            'style="display:flex; align-items:center; justify-content:center; '
-            'height:38px; background:#2C2520; color:#8A7E76; font-size:12px; '
-            'text-decoration:none; border:1px solid rgba(232,82,26,0.25); '
-            'border-radius:8px; margin-top:4px;">'
-            '🌐 Back to Website</a>',
-            unsafe_allow_html=True
-        )
+        components.html("""
+        <script>
+        function goHome() { window.top.location.href = 'https://handyhelper.company'; }
+        </script>
+        <button onclick="goHome()" style="
+            width:100%; height:38px; cursor:pointer;
+            background:#2C2520; color:#8A7E76; font-size:12px; font-weight:500;
+            border:1px solid rgba(232,82,26,0.25); border-radius:8px;
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+            🌐 &nbsp;Back to Website
+        </button>
+        """, height=46)
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("""
