@@ -642,8 +642,9 @@ if "sb_auth_mode" not in st.session_state:
     st.session_state.sb_auth_mode = "signin"
 
 # ── Auto-navigate to auth if linked from website Sign In button ──
+# Guard with not get_user() so a successful sign-in doesn't bounce back to auth
 _qp = st.query_params
-if _qp.get("section") == "auth" and st.session_state.current_section == "chat":
+if _qp.get("section") == "auth" and st.session_state.current_section == "chat" and not get_user():
     st.session_state.current_section = "auth"
 
 # ══════════════════════════════════════════════════════════
@@ -862,6 +863,7 @@ elif st.session_state.current_section == "auth":
             else:
                 try:
                     do_sign_in(auth_email, auth_pass)
+                    st.query_params.clear()
                     st.success("Signed in! Loading your history...")
                     st.session_state.current_section = "chat"
                     st.session_state.sb_current_session = None
