@@ -309,14 +309,17 @@ st.markdown("""
             font-size: 11px !important;
         }
         [data-testid="stLinkButton"] a {
-            background: #E8521A !important; color: white !important;
-            border: none !important; border-radius: 10px !important;
-            width: 100% !important; min-height: 52px !important;
-            font-size: 14px !important; font-weight: 700 !important;
+            background: #2C2520 !important; color: #8A7E76 !important;
+            border: 1px solid rgba(232,82,26,0.25) !important; border-radius: 8px !important;
+            width: 100% !important; min-height: 38px !important;
+            font-size: 12px !important; font-weight: 500 !important;
             display: flex !important; align-items: center !important;
             justify-content: center !important; text-decoration: none !important;
         }
-        [data-testid="stLinkButton"] a:hover { background: #C43E0A !important; }
+        [data-testid="stLinkButton"] a:hover {
+            background: #3D3530 !important; color: #F5F0E8 !important;
+            border-color: rgba(232,82,26,0.5) !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -792,22 +795,11 @@ if st.session_state.current_section == "chat":
         if st.button("🚐👋  Completed With Pride", key="nav_doc", use_container_width=True):
             st.session_state.current_section = "document"
             st.rerun()
-        components.html("""
-        <script>
-        function goHome() {
-            var url = 'https://handyhelper.company';
-            window.top.postMessage({action:'goHome', url:url}, '*');
-            try { window.top.location.href = url; } catch(e) {}
-        }
-        </script>
-        <button onclick="goHome()" style="
-            width:100%; height:40px; margin-top:6px; cursor:pointer;
-            background:#2C2520; color:#8A7E76; font-size:12px; font-weight:500;
-            border:1px solid rgba(232,82,26,0.2); border-radius:10px;
-            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-            🌐 &nbsp;handyhelper.company
-        </button>
-        """, height=54)
+        st.markdown(
+            '<p style="font-size:10px; color:#8A7E76; text-align:center; margin-top:0.3rem;">'
+            'Use the top bar to return to the website</p>',
+            unsafe_allow_html=True
+        )
 
     if send and user_input and user_input.strip():
         prompt = user_input.strip()
@@ -888,22 +880,11 @@ elif st.session_state.current_section == "auth":
             st.session_state.current_section = "chat"
             st.rerun()
     with col2:
-        components.html("""
-        <script>
-        function goHome() {
-            var url = 'https://handyhelper.company';
-            window.top.postMessage({action:'goHome', url:url}, '*');
-            try { window.top.location.href = url; } catch(e) {}
-        }
-        </script>
-        <button onclick="goHome()" style="
-            width:100%; height:38px; cursor:pointer;
-            background:#2C2520; color:#8A7E76; font-size:12px; font-weight:500;
-            border:1px solid rgba(232,82,26,0.25); border-radius:8px;
-            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-            🌐 &nbsp;Back to Website
-        </button>
-        """, height=46)
+        st.link_button(
+            "← Return to handyhelper.company",
+            "https://handyhelper.company",
+            use_container_width=True
+        )
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("""
