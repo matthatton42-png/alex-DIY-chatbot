@@ -794,7 +794,11 @@ if st.session_state.current_section == "chat":
             st.rerun()
         components.html("""
         <script>
-        function goHome() { window.top.location.href = 'https://handyhelper.company'; }
+        function goHome() {
+            var url = 'https://handyhelper.company';
+            window.top.postMessage({action:'goHome', url:url}, '*');
+            try { window.top.location.href = url; } catch(e) {}
+        }
         </script>
         <button onclick="goHome()" style="
             width:100%; height:40px; margin-top:6px; cursor:pointer;
@@ -886,7 +890,11 @@ elif st.session_state.current_section == "auth":
     with col2:
         components.html("""
         <script>
-        function goHome() { window.top.location.href = 'https://handyhelper.company'; }
+        function goHome() {
+            var url = 'https://handyhelper.company';
+            window.top.postMessage({action:'goHome', url:url}, '*');
+            try { window.top.location.href = url; } catch(e) {}
+        }
         </script>
         <button onclick="goHome()" style="
             width:100%; height:38px; cursor:pointer;
