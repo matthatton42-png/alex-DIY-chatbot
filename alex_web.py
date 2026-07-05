@@ -697,6 +697,19 @@ _qp = st.query_params
 if _qp.get("section") == "auth" and st.session_state.current_section == "chat" and not get_user():
     st.session_state.current_section = "auth"
 
+# ── Broadcast auth state to parent window on every render ──
+# chat.html (on handyhelper.company) receives this and stores in localStorage.
+# index.html (same domain) reads localStorage to update the nav with logged-in user.
+_broadcast_email = get_user()["email"] if get_user() else ""
+components.html(f"""<script>
+try {{
+    window.top.postMessage({{
+        action: 'hhUserInfo',
+        email: '{_broadcast_email}'
+    }}, '*');
+}} catch(e) {{}}
+</script>""", height=0)
+
 # ══════════════════════════════════════════════════════════
 # SECTION: AI CHAT
 # ══════════════════════════════════════════════════════════
