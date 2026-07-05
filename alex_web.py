@@ -750,8 +750,9 @@ if st.session_state.current_section == "chat":
 
     if not st.session_state.messages:
         # ── Account bar — very top of window ──
-        # Detect if running embedded in the homepage (vs full-screen in chat.html)
-        _is_embedded = st.query_params.get("embedded") == "true"
+        # Detect if running embedded in the homepage (vs full-screen in chat.html or Android app)
+        # Homepage uses ?embedded=true&source=website — Android app uses ?embedded=true only
+        _is_embedded = st.query_params.get("source") == "website"
         user = get_user()
         if user:
             # Always show signed-in state — both embedded and full-screen
