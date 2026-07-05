@@ -750,16 +750,22 @@ if st.session_state.current_section == "chat":
 
     if not st.session_state.messages:
         # ── Account bar — very top of window ──
+        # Detect if running embedded in the homepage (vs full-screen in chat.html)
+        _is_embedded = st.query_params.get("embedded") == "true"
         user = get_user()
         if user:
+            # Always show signed-in state — both embedded and full-screen
             st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.3rem; text-align:center;">👤 {user["email"]}</p>', unsafe_allow_html=True)
-            if st.button("📜  Chat History", key="sign_top_history", use_container_width=True):
-                st.session_state.current_section = "history"
-                st.rerun()
+            if not _is_embedded:
+                if st.button("📜  Chat History", key="sign_top_history", use_container_width=True):
+                    st.session_state.current_section = "history"
+                    st.rerun()
             if st.button("↩️  Sign Out", key="sign_out_top", use_container_width=True):
                 do_sign_out()
                 st.rerun()
-        elif DB_ENABLED:
+        elif DB_ENABLED and not _is_embedded:
+            # Only show sign-in prompt in full-screen mode (chat.html)
+            # Homepage nav already handles sign-in — showing it twice is confusing
             st.markdown('<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.3rem; text-align:center;">💾 Sign in to save your history & projects</p>', unsafe_allow_html=True)
             if st.button("👤  Sign In / Create Account", key="nav_auth_top", use_container_width=True):
                 st.session_state.current_section = "auth"
