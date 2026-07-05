@@ -650,15 +650,14 @@ if st.session_state.current_section == "chat":
         # ── Account bar — very top of window ──
         user = get_user()
         if user:
-            col1, col2, col3 = st.columns([4, 2, 2])
+            st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.2rem 0 0.3rem; text-align:center;">👤 {user["email"]}</p>', unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
             with col1:
-                st.markdown(f'<p style="font-size:11px; color:#8A7E76; margin:0.3rem 0;">👤 {user["email"]}</p>', unsafe_allow_html=True)
-            with col2:
-                if st.button("📜 History", key="sign_top_history"):
+                if st.button("📜  Chat History", key="sign_top_history", use_container_width=True):
                     st.session_state.current_section = "history"
                     st.rerun()
-            with col3:
-                if st.button("Sign Out", key="sign_out_top"):
+            with col2:
+                if st.button("Sign Out", key="sign_out_top", use_container_width=True):
                     do_sign_out()
                     st.rerun()
         elif DB_ENABLED:
